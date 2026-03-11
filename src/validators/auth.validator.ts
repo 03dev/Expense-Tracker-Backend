@@ -14,7 +14,7 @@ export const registerSchema = z.object({
 }).strict();
 
 export const loginSchema = z.object({
-    emial: z
+    email: z
     .string()
     .email("Invalid email address"),
     password: z
