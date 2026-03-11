@@ -2,6 +2,7 @@ import { BadRequestError } from "../errors/BadRequestError";
 import { AuthRepository } from "../repositories/auth.repository";
 import { TokenUtils } from "../utils/token.utils";
 import { UnauthorizedError } from "../errors/UnauthorizedError";
+
 const registerService = async (data: {
   name: string;
   email: string;
@@ -72,23 +73,23 @@ const loginService = async (data: { email: string; password: string }) => {
   };
 };
 
-const logoutService = async (userId: string, token: string) => {
-  const logoutService = async (token: string) => {
-    const decoded = TokenUtils.verifyRefreshToken(token);
-    const storedToken = await AuthRepository.findRefreshToken(decoded.tokenId);
-    if (!storedToken) {
-      throw new UnauthorizedError("Invalid refresh token");
-    }
-    const isValidToken = await TokenUtils.compareFunction(
-      token,
-      storedToken.token,
-    );
-    if (!isValidToken) {
-      throw new UnauthorizedError("Invalid refresh token");
-    }
-    await AuthRepository.deleteRefreshToken(storedToken.id);
-  };
+
+const logoutService = async (token: string) => {
+  const decoded = TokenUtils.verifyRefreshToken(token);
+  const storedToken = await AuthRepository.findRefreshToken(decoded.tokenId);
+  if (!storedToken) {
+    throw new UnauthorizedError("Invalid refresh token");
+  }
+  const isValidToken = await TokenUtils.compareFunction(
+    token,
+    storedToken.token,
+  );
+  if (!isValidToken) {
+    throw new UnauthorizedError("Invalid refresh token");
+  }
+  await AuthRepository.deleteRefreshToken(storedToken.id);
 };
+
 
 const refreshTokenService = async (token: string) => {
   const decoded = TokenUtils.verifyRefreshToken(token);
@@ -136,8 +137,8 @@ const refreshTokenService = async (token: string) => {
 };
 
 export const AuthServices = {
-    registerService,
-    loginService,
-    logoutService,
-    refreshTokenService
+  registerService,
+  loginService,
+  logoutService,
+  refreshTokenService
 }

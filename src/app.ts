@@ -4,6 +4,7 @@ import morgan from "morgan";
 import { env } from "./config/env";
 import { errorMiddleware } from "./middlewares/error.middleware";
 import cookieParser from "cookie-parser";
+import authRouter from "./routes/auth.routes";
 
 const app = express();
 
@@ -17,6 +18,8 @@ app.use(morgan(env.NODE_ENV === "development" ? "dev": "combined"));
 app.get('/', (req: Request, res: Response) => {
     res.json({message: "Expense Tracker API is running"});
 });
+
+app.use("/auth", authRouter);
 
 // Routes will come here later
 
