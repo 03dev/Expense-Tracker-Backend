@@ -2,12 +2,12 @@ import { AuthServices } from "../services/auth.service";
 import { env } from "../config/env";
 import { AppRequest } from "../types/request.types";
 import { LoginInput, RegisterInput } from "../validators/auth.validator";
-import { Request, Response } from "express";
-import { success } from "zod";
+import { Response } from "express";
 import { UnauthorizedError } from "../errors/UnauthorizedError";
+import { getBody } from "../utils/getValidated";
 
 const signUpController = async (req: AppRequest, res: Response) => {
-    const body = req.validated?.body as RegisterInput;
+    const body = getBody<RegisterInput>(req);
     const { accessToken, refreshToken } = await AuthServices.registerService(body);
 
     res.cookie("refreshToken", refreshToken, {
@@ -25,7 +25,7 @@ const signUpController = async (req: AppRequest, res: Response) => {
 }
 
 const loginController = async (req: AppRequest, res: Response) => {
-    const body = req.validated?.body as LoginInput;
+    const body = getBody<LoginInput>(req);
     const { accessToken, refreshToken } = await AuthServices.loginService(body);
 
     res.cookie("refreshToken", refreshToken, {
@@ -43,7 +43,7 @@ const loginController = async (req: AppRequest, res: Response) => {
 }
 
 const logoutController = async (req: AppRequest, res: Response) => {
-    const token = req.cookies?.refreshToken;
+    const token = req.cookies.refreshToken;
 
     if(!token) {
         throw new UnauthorizedError("No refresh token provided");
@@ -65,7 +65,7 @@ const logoutController = async (req: AppRequest, res: Response) => {
 }
 
 const refreshTokenController = async (req: AppRequest, res: Response) => {
-    const token = req.cookies?.refreshToken;
+    const token = req.cookies.refreshToken;
 
     if(!token) {
         throw new UnauthorizedError("No refresh token provided");

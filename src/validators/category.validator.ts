@@ -1,0 +1,30 @@
+import { z } from "zod";
+
+export const createCategorySchema = z.object({
+    name: z
+    .string()
+    .min(1, "Category can't be empty")
+    .trim(),
+    parentId: z
+    .string()
+    .optional()
+}).strict();
+
+export const updateCategorySchema = z.object({
+    name: z
+    .string()
+    .trim()
+    .optional()
+}).strict().refine(
+    (data) => Object.keys(data).length > 0,
+    { message: "At least one field must be provided"}
+);
+
+export const categoryIdSchema = z.object({
+    id: z
+    .string()
+    .uuid("Invalid category ID")
+});
+
+export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
+export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
