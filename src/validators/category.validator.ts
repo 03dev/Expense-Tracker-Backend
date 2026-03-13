@@ -28,3 +28,4 @@ export const categoryIdSchema = z.object({
 
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
 export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
+export type CategoryIdInput = z.infer<typeof categoryIdSchema>;

@@ -1,8 +1,8 @@
 import { Response } from "express";
 import { AuthenticatedRequest } from "../types/request.types";
 import { CategoryService } from "../services/category.service";
-import { CreateCategoryInput, UpdateCategoryInput } from "../validators/category.validator";
-import { getBody, getParams } from "../utils/getValidated";
+import { CreateCategoryInput, UpdateCategoryInput, CategoryIdInput } from "../validators/category.validator";
+import { getBody, getParam } from "../utils/getValidated";
 
 const createCategory = async (req: AuthenticatedRequest, res: Response) => {
   const body = getBody<CreateCategoryInput>(req);
@@ -27,9 +27,9 @@ const getCategories = async (req: AuthenticatedRequest, res: Response) => {
 };
 
 const getCategoryById = async (req: AuthenticatedRequest, res: Response) => {
-  const params = getParams<{ id: string }>(req);
+  const param = getParam<CategoryIdInput>(req);
   const category = await CategoryService.getCategoryByIdService(
-    params.id,
+    param.id,
     req.user.id
   );
   return res.status(200).json({
@@ -39,10 +39,10 @@ const getCategoryById = async (req: AuthenticatedRequest, res: Response) => {
 };
 
 const updateCategory = async (req: AuthenticatedRequest, res: Response) => {
-  const params = getParams<{ id: string }>(req);
+  const param = getParam<CategoryIdInput>(req);
   const body = getBody<UpdateCategoryInput>(req);
   const category = await CategoryService.updateCategoryService(
-    params.id,
+    param.id,
     req.user.id,
     body.name!
   );
@@ -54,8 +54,8 @@ const updateCategory = async (req: AuthenticatedRequest, res: Response) => {
 };
 
 const deleteCategory = async (req: AuthenticatedRequest, res: Response) => {
-  const params = getParams<{ id: string }>(req);
-  await CategoryService.deleteCategoryService(params.id, req.user.id);
+  const param = getParam<CategoryIdInput>(req);
+  await CategoryService.deleteCategoryService(param.id, req.user.id);
   return res.status(200).json({
     success: true,
     message: "Category deleted successfully",

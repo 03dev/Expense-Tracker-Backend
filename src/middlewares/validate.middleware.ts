@@ -23,7 +23,7 @@ export const validate = (schemas: ValidateSchema) => {
         }
 
         if(schemas.query) {
-            const result = schemas.query.safeParse(req.body);
+            const result = schemas.query.safeParse(req.query);
             if(!result.success) {
                 throw new BadRequestError(
                     "Invalid query parameters",

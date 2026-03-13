@@ -5,7 +5,8 @@ import { env } from "./config/env";
 import { errorMiddleware } from "./middlewares/error.middleware";
 import cookieParser from "cookie-parser";
 import authRouter from "./routes/auth.routes";
-import categoryRouter from "./routes/category.routes"
+import categoryRouter from "./routes/category.routes";
+import transactionRouter from "./routes/transaction.routes";
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.get('/', (req: Request, res: Response) => {
 
 app.use("/auth", authRouter);
 app.use("/categories", categoryRouter);
+app.use("/transaction", transactionRouter);
 
 // Routes will come here later
 
