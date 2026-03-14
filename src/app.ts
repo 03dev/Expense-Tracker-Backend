@@ -7,6 +7,7 @@ import cookieParser from "cookie-parser";
 import authRouter from "./routes/auth.routes";
 import categoryRouter from "./routes/category.routes";
 import transactionRouter from "./routes/transaction.routes";
+import budgetRouter from "./routes/budget.route";
 
 const app = express();
 
@@ -23,7 +24,8 @@ app.get('/', (req: Request, res: Response) => {
 
 app.use("/auth", authRouter);
 app.use("/categories", categoryRouter);
-app.use("/transaction", transactionRouter);
+app.use("/transactions", transactionRouter);
+app.use("/budgets", budgetRouter)
 
 // Routes will come here later
 

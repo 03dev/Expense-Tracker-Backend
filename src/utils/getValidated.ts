@@ -4,7 +4,7 @@ export const getBody = <T>(req: AppRequest): T => {
   return req.validated?.body as T;
 }
 
-export const getParam = <T>(req: AppRequest): T => {
+export const getParams = <T>(req: AppRequest): T => {
   return req.validated?.params as T;
 }
 

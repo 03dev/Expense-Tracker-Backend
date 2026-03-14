@@ -1,6 +1,6 @@
 import { Response } from "express"
 import { AuthenticatedRequest } from "../types/request.types"
-import { getBody, getParam, getQuery } from "../utils/getValidated"
+import { getBody, getParams, getQuery } from "../utils/getValidated"
 import { CreateTransactionInput, TransactionIdInput, TransactionQueryParams, UpdateTransactionInput } from "../validators/transaction.validator"
 import { TransactionService } from "../services/transaction.service"
 
@@ -28,7 +28,7 @@ const getTransactions = async (req: AuthenticatedRequest, res: Response) => {
 }
 
 const getTransactionById = async (req: AuthenticatedRequest, res: Response) => {
-    const param = getParam<TransactionIdInput>(req);
+    const param = getParams<TransactionIdInput>(req);
     const transaction = await TransactionService.getTransactionByIdService(param.id, req.user.id);
 
     return res.status(200).json({
@@ -39,7 +39,7 @@ const getTransactionById = async (req: AuthenticatedRequest, res: Response) => {
 }
 
 const updateTransaction = async (req: AuthenticatedRequest, res: Response) => {
-    const param = getParam<TransactionIdInput>(req);
+    const param = getParams<TransactionIdInput>(req);
     const body = getBody<UpdateTransactionInput>(req);
     const transaction = await TransactionService.updateTransactionService(param.id, req.user.id, body);
 
@@ -51,7 +51,7 @@ const updateTransaction = async (req: AuthenticatedRequest, res: Response) => {
 }
 
 const deleteTransaction = async (req: AuthenticatedRequest, res: Response) => {
-    const param = getParam<TransactionIdInput>(req);
+    const param = getParams<TransactionIdInput>(req);
     await TransactionService.deleteTransactionService(param.id, req.user.id);
 
     return res.status(200).json({

@@ -2,7 +2,7 @@ import { Response } from "express";
 import { AuthenticatedRequest } from "../types/request.types";
 import { CategoryService } from "../services/category.service";
 import { CreateCategoryInput, UpdateCategoryInput, CategoryIdInput } from "../validators/category.validator";
-import { getBody, getParam } from "../utils/getValidated";
+import { getBody, getParams } from "../utils/getValidated";
 
 const createCategory = async (req: AuthenticatedRequest, res: Response) => {
   const body = getBody<CreateCategoryInput>(req);
@@ -27,7 +27,7 @@ const getCategories = async (req: AuthenticatedRequest, res: Response) => {
 };
 
 const getCategoryById = async (req: AuthenticatedRequest, res: Response) => {
-  const param = getParam<CategoryIdInput>(req);
+  const param = getParams<CategoryIdInput>(req);
   const category = await CategoryService.getCategoryByIdService(
     param.id,
     req.user.id
@@ -39,7 +39,7 @@ const getCategoryById = async (req: AuthenticatedRequest, res: Response) => {
 };
 
 const updateCategory = async (req: AuthenticatedRequest, res: Response) => {
-  const param = getParam<CategoryIdInput>(req);
+  const param = getParams<CategoryIdInput>(req);
   const body = getBody<UpdateCategoryInput>(req);
   const category = await CategoryService.updateCategoryService(
     param.id,
@@ -54,7 +54,7 @@ const updateCategory = async (req: AuthenticatedRequest, res: Response) => {
 };
 
 const deleteCategory = async (req: AuthenticatedRequest, res: Response) => {
-  const param = getParam<CategoryIdInput>(req);
+  const param = getParams<CategoryIdInput>(req);
   await CategoryService.deleteCategoryService(param.id, req.user.id);
   return res.status(200).json({
     success: true,
