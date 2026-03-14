@@ -14,7 +14,7 @@ const createBudget = async (userId: string, data: {amount: number, month: number
 }
 
 const getBudgets = async (userId: string, filter: GetBudgetsInput) => {
-    return prisma.budget.findMany({
+    const budgets = await prisma.budget.findMany({
         where: {
             userId,
             month: filter.month,
@@ -22,6 +22,11 @@ const getBudgets = async (userId: string, filter: GetBudgetsInput) => {
             deletedAt: null
         }
     });
+
+    return {
+        budgets,
+        total: budgets.length
+    }
 }
 
 const getBudgetById = async (id: string, userId: string) => {

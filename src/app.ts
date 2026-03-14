@@ -14,12 +14,29 @@ const app = express();
 // Middlewares
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors());
-app.use(morgan(env.NODE_ENV === "development" ? "dev": "combined"));
+app.use(cors({
+  origin: env.NODE_ENV === "production"
+    ? "https://yourfrontend.com"
+    : "http://localhost:5173",
+  credentials: true
+}));
+if (env.NODE_ENV !== "test") {
+  app.use(morgan(env.NODE_ENV === "development" ? "dev" : "combined"));
+}
 
 // Health check
 app.get('/', (req: Request, res: Response) => {
     res.json({message: "Expense Tracker API is running"});
+});
+
+app.use((req, res, next) => {
+  const originalJson = res.json.bind(res);
+  res.json = (data: any) => {
+    return originalJson(JSON.parse(JSON.stringify(data, (_, value) =>
+      value?.constructor?.name === 'Decimal' ? Number(value) : value
+    )));
+  };
+  next();
 });
 
 app.use("/auth", authRouter);
