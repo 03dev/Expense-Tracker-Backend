@@ -8,6 +8,8 @@ import authRouter from "./routes/auth.routes";
 import categoryRouter from "./routes/category.routes";
 import transactionRouter from "./routes/transaction.routes";
 import budgetRouter from "./routes/budget.route";
+import notificationRouter from "./routes/notification.routes";
+import analyticsRouter from "./routes/analytics.routes";
 
 const app = express();
 
@@ -43,6 +45,8 @@ app.use("/auth", authRouter);
 app.use("/categories", categoryRouter);
 app.use("/transactions", transactionRouter);
 app.use("/budgets", budgetRouter)
+app.use("/notification", notificationRouter);
+app.use("/analytics", analyticsRouter);
 
 // Routes will come here later
 
