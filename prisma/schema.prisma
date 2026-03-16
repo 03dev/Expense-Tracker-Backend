@@ -19,17 +19,26 @@ enum TransactionType {
   EXPENSE
 }
 
+enum NotificationType {
+  TRANSACTION_CREATED
+  TRANSACTION_DELETED
+  BUDGET_ALERT
+  BUDGET_EXCEEDED
+}
+
 model User {
   id            String         @id @default(uuid())
   name          String
   email         String         @unique
   password      String
+  avatarUrl     String?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   transactions  Transaction[]
   categories    Category[]
   budgets       Budget[]
   refreshTokens RefreshToken[]
+  notifications Notification[]
 }
 
 model RefreshToken {
@@ -63,6 +72,10 @@ model Transaction {
   type       TransactionType
   note       String?
   receiptUrl String?
+  merchant   String?
+  location   String?
+  isRecurring Boolean        @default(false)
+  tags       String[]
   date       DateTime
   createdAt  DateTime        @default(now())
   updatedAt  DateTime        @updatedAt
@@ -86,4 +99,15 @@ model Budget {
   category   Category  @relation(fields: [categoryId], references: [id])
 
   @@unique([userId, categoryId, month, year])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  type      NotificationType
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

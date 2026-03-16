@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { boolean, z } from "zod";
 
 export const createTransactionSchema = z.object({
   amount: z
@@ -13,6 +13,18 @@ export const createTransactionSchema = z.object({
     .string()
     .url("Receipt must be a valid URL")
     .optional(),
+  merchant: z
+    .string()
+    .max(100)
+    .optional(),
+  location: z
+    .string()
+    .max(200)
+    .optional(),
+  isRecurring: z
+    .boolean().default(false),
+  tags: z
+    .array(z.string()).default([]),
   date: z
     .string()
     .datetime("Invalid date format"),
@@ -57,6 +69,16 @@ export const transactionQuerySchema = z.object({
         .string()
         .datetime("Invalid date format")
         .optional(),
+    merchant: z
+        .string()
+        .optional(),
+    isRecurring: z
+        .coerce
+        .boolean()
+        .optional(),
+    tags: z
+        .string()
+        .optional(),
 });
 
 export const updateTransactionSchema = z.object({
@@ -73,6 +95,20 @@ export const updateTransactionSchema = z.object({
     receiptUrl: z
         .string()
         .url("Receipt must be a valid URL")
+        .optional(),
+    merchant: z
+        .string()
+        .max(100)
+        .optional(),
+    location: z
+        .string()
+        .max(200)
+        .optional(),
+    isRecurring: z
+        .boolean()
+        .optional(),
+    tags: z
+        .array(z.string())
         .optional(),
     date: z
         .string()
