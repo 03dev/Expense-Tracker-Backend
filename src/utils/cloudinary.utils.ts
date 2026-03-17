@@ -1,4 +1,5 @@
 import cloudinary from "../config/cloudinary"
+import { logger } from "./logger";
 
 export const  uploadImage = (
     buffer: Buffer,
@@ -23,9 +24,12 @@ export const  uploadImage = (
             (error, result) => {
                 if(error) reject(error);
                 else resolve(result!.secure_url);
+
+                logger.error(`Cloudinary upload failed`, error);
             }
         );
         uploadStream.end(buffer);
+        logger.info(`Image uploaded to Cloudinary`, { folder, publicId });
     });
 };
 

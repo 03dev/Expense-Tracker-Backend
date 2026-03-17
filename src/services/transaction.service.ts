@@ -5,6 +5,7 @@ import { TransactionRepository } from "../repositories/transaction.repository";
 import { NotificationType } from "../generated/prisma";
 import { TransactionQueryParams, CreateTransactionInput, UpdateTransactionInput } from "../validators/transaction.validator";
 import { BudgetRepository } from "../repositories/budget.repository";
+import { logger } from "../utils/logger";
 
 const createTransactionService = async (userId: string, data: CreateTransactionInput) => {
     const category = await CategoryRepository.getCategoryById(data.categoryId, userId);
@@ -28,6 +29,7 @@ const createTransactionService = async (userId: string, data: CreateTransactionI
   });
 
   await checkBudgetAlert(userId, data.categoryId, new Date(data.date));
+  logger.info(`Transaction created`, { userId, amount: data.amount, type: data.type });
 
   return transaction;
 }
@@ -133,6 +135,8 @@ const deleteTransactionService = async (id: string, userId: string) => {
       type: NotificationType.TRANSACTION_DELETED,
       userId
     });
+
+    logger.info(`Transaction deleted`, { userId, transactionId: id })
 }
 
 export const TransactionService = {

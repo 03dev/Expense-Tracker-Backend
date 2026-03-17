@@ -2,6 +2,7 @@ import { BadRequestError } from "../errors/BadRequestError";
 import { AuthRepository } from "../repositories/auth.repository";
 import { TokenUtils } from "../utils/token.utils";
 import { UnauthorizedError } from "../errors/UnauthorizedError";
+import { logger } from "../utils/logger";
 
 const registerService = async (data: {
   name: string;
@@ -32,6 +33,8 @@ const registerService = async (data: {
     tempRefreshToken.id,
     hashedRefreshToken,
   );
+
+  logger.info(`New user registered: ${user.email}`);
 
   return {
     accessToken,
@@ -67,6 +70,8 @@ const loginService = async (data: { email: string; password: string }) => {
     hashedRefreshToken,
   );
 
+  logger.info(`User logged in: ${user.email}`);
+
   return {
     accessToken,
     refreshToken,
@@ -88,6 +93,8 @@ const logoutService = async (token: string) => {
     throw new UnauthorizedError("Invalid refresh token");
   }
   await AuthRepository.deleteRefreshToken(storedToken.id);
+
+  logger.info(`User logged out`);
 };
 
 

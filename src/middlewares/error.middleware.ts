@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AppError } from "../errors/AppError";
 import { env } from "../config/env"
+import { logger } from "../utils/logger";
 
 export const errorMiddleware = (
     err: Error,
@@ -18,7 +19,8 @@ export const errorMiddleware = (
     }
 
     // Unknown, unexpected error (bug, DB crash, etc.)
-    console.error("UNEXPECTED ERROR: ", err);
+    // Log unexpected errors
+    logger.error("UNEXPECTED ERROR 💥", err);
 
     return res.status(500).json({
         success: false,
