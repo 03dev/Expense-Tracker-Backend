@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { AppError } from "../errors/AppError";
 import { env } from "../config/env"
 import { logger } from "../utils/logger";
+import { PrismaClientKnownRequestError } from "../generated/prisma/runtime/client";
 
 export const errorMiddleware = (
     err: Error,
@@ -9,6 +10,30 @@ export const errorMiddleware = (
     res: Response,
     next: NextFunction
 ) => {
+
+    // Handle prisma unique constraint error
+    if (err instanceof PrismaClientKnownRequestError) {
+        if(err.code === "P2002") {
+            return res.status(400).json({
+                success: false,
+                message: "A record with this information already exists"
+            });
+        }
+
+        if (err.code === "P2025") {
+            return res.status(404).json({
+                success: false,
+                message: "Record not found"
+            });
+        }
+
+        if (err.code === "P2003") {
+            return res.status(400).json({
+                success: false,
+                message: "Related record not found"
+            })
+        }
+    }
 
     // Known, expected error (our AppError)
     if (err instanceof AppError && err.isOperational) {

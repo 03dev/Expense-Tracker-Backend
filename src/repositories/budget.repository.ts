@@ -9,6 +9,9 @@ const createBudget = async (userId: string, data: {amount: number, month: number
             year: data.year,
             categoryId: data.categoryId,
             userId
+        },
+        include: {
+            category: true
         }
     });
 }
