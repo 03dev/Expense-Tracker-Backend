@@ -11,6 +11,7 @@ import budgetRouter from "./routes/budget.route";
 import notificationRouter from "./routes/notification.routes";
 import analyticsRouter from "./routes/analytics.routes";
 import userRouter from "./routes/user.routes";
+import dashboardRouter from "./routes/dashboard.routes";
 
 const app = express();
 
@@ -20,7 +21,7 @@ app.use(cookieParser());
 app.use(cors({
   origin: env.NODE_ENV === "production"
     ? "https://yourfrontend.com"
-    : "http://localhost:5173",
+    : "http://localhost:8081",
   credentials: true
 }));
 if (env.NODE_ENV !== "test") {
@@ -49,6 +50,7 @@ app.use("/budgets", budgetRouter)
 app.use("/notification", notificationRouter);
 app.use("/analytics", analyticsRouter);
 app.use("/user", userRouter);
+app.use("/dashboard", dashboardRouter);
 
 // Routes will come here later
 

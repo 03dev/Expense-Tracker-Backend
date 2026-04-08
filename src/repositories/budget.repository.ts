@@ -23,6 +23,9 @@ const getBudgets = async (userId: string, filter: GetBudgetsInput) => {
             month: filter.month,
             year: filter.year,
             deletedAt: null
+        },
+        include: {
+            category: true
         }
     });
 
@@ -38,6 +41,9 @@ const getBudgetById = async (id: string, userId: string) => {
             id,
             userId,
             deletedAt: null
+        },
+        include: {
+            category: true
         }
     });
 }
