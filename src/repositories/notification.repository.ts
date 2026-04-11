@@ -1,4 +1,4 @@
-import { NotificationType } from "../generated/prisma";
+import { NotificationType } from "@prisma/client";
 import { prisma } from "../config/prisma";
 
 const createNotification = async (data: {

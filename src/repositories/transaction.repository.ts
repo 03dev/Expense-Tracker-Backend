@@ -1,5 +1,5 @@
 // src/repositories/transaction.repository.ts
-import { Prisma, TransactionType } from "../generated/prisma";
+import { Prisma, TransactionType } from "@prisma/client";
 import { prisma } from "../config/prisma";
 import { TransactionQueryParams } from "../validators/transaction.validator";
 

@@ -18,10 +18,11 @@ const app = express();
 // Middlewares
 app.use(express.json());
 app.use(cookieParser());
+// Middlewares
+app.use(express.json());
+app.use(cookieParser());
 app.use(cors({
-  origin: env.NODE_ENV === "production"
-    ? "https://yourfrontend.com"
-    : "http://localhost:8081",
+  origin: true, // This automatically allows the origin of the requester
   credentials: true
 }));
 if (env.NODE_ENV !== "test") {

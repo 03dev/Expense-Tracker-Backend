@@ -2,7 +2,7 @@ import { NotFoundError } from "../errors/NotFoundError";
 import { CategoryRepository } from "../repositories/category.repository";
 import { NotificationRepository } from "../repositories/notification.repository";
 import { TransactionRepository } from "../repositories/transaction.repository";
-import { NotificationType } from "../generated/prisma";
+import { NotificationType } from "@prisma/client";
 import { TransactionQueryParams, CreateTransactionInput, UpdateTransactionInput } from "../validators/transaction.validator";
 import { BudgetRepository } from "../repositories/budget.repository";
 import { logger } from "../utils/logger";
