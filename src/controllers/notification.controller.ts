@@ -1,12 +1,12 @@
 import { Response } from "express";
 import { AuthenticatedRequest } from "../types/request.types";
-import { getParams } from "../utils/getValidated";
-import { NotificationIdInput } from "../validators/notification.validator";
+import { getParams, getQuery } from "../utils/getValidated";
+import { GetNotificationsInput, NotificationIdInput } from "../validators/notification.validator";
 import { NotificationService } from "../services/notification.service";
 
 const getNotifications = async (req: AuthenticatedRequest, res: Response) => {
-    const notifications = await NotificationService.getNotificationsService(req.user.id);
-
+    const query = getQuery<GetNotificationsInput>(req);
+    const notifications = await NotificationService.getNotificationsService(req.user.id, query);
     return res.status(200).json({
         success: true,
         message: "Notification fetched successfully",

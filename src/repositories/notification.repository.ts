@@ -1,5 +1,15 @@
 import { NotificationType } from "@prisma/client";
 import { prisma } from "../config/prisma";
+import { GetNotificationsInput } from "../validators/notification.validator";
+
+const notificationSelect = {
+    id: true,
+    title: true,
+    message: true,
+    type: true,
+    isRead: true,
+    createdAt: true
+} as const;
 
 const createNotification = async (data: {
     title: string;
@@ -13,29 +23,50 @@ const createNotification = async (data: {
             message: data.message,
             type: data.type,
             userId: data.userId
-        }
+        },
+        select: notificationSelect
     });
 }
 
-const getNotifications = async (userId: string) => {
-    return prisma.notification.findMany({
-        where: {
-            userId
-        },
-        orderBy: {
-            createdAt: "desc"
-        },
-        take: 50
-    });
+const getNotifications = async (userId: string, filter: GetNotificationsInput) => {
+    const where = { userId };
+
+    const [notification, total, unreadCount] = await prisma.$transaction([
+        prisma.notification.findMany({
+            where,
+            orderBy: {
+                createdAt: "desc"
+            },
+            skip: (filter.page - 1) * filter.limit,
+            take: filter.limit,
+            select: notificationSelect
+        }),
+        prisma.notification.count({ where }),
+        prisma.notification.count({
+            where: {
+                userId,
+                isRead: false
+            }
+        })
+    ]);
+
+    return {
+        notification,
+        unreadCount,
+        total,
+        page: filter.page,
+        limit: filter.limit,
+        totalPages: Math.ceil(total/ filter.limit)
+    };
 }
 
 const getUnreadCount = async (userId: string) => {
-    return prisma.notification.findMany({
+    return prisma.notification.count({
         where: {
             userId,
             isRead: false
         }
-    });
+    })
 }
 
 const markAsRead = async (id: string, userId: string) => {
@@ -46,14 +77,16 @@ const markAsRead = async (id: string, userId: string) => {
         },
         data: {
             isRead: true
-        }
+        },
+        select: notificationSelect
     });
 }
 
 const markAllAsRead = async (userId: string) => {
     return prisma.notification.updateMany({
         where: {
-            userId
+            userId,
+            isRead: false
         },
         data: {
             isRead: true
@@ -72,7 +105,8 @@ const deleteNotification = async (id: string, userId: string) => {
 
 const getNotificationById = async (id: string, userId: string) => {
   return prisma.notification.findFirst({
-    where: { id, userId }
+    where: { id, userId },
+    select: notificationSelect
   });
 }
 

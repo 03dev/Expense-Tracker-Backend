@@ -36,7 +36,19 @@ const envSchema = z.object({
   CLOUDINARY_API_SECRET: z
     .string()
     .min(1, "Cloudinary API secret is required"),
-});
+  
+  // Redis
+  REDIS_HOST: z
+    .string()
+    .default("localhost"),
+  REDIS_PORT: z
+    .string()
+    .default("6379")
+    .transform(Number),
+  REDIS_PASSWORD: z
+    .string()
+    .optional(),  
+}); 
 
 const parsed = envSchema.safeParse(process.env);
 

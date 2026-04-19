@@ -1,38 +1,56 @@
 import { prisma } from "../config/prisma"
 import { GetBudgetsInput, UpdateBudgetInput } from "../validators/budget.validator";
 
-const createBudget = async (userId: string, data: {amount: number, month: number, year: number, categoryId: string}) => {
+const budgetSelect = {
+    id: true,
+    amount: true,
+    icon: true,
+    month: true,
+    year: true,
+    categoryId: true,
+    createdAt: true,
+    category: {
+        select: {
+            id: true,
+            name: true
+        }
+    }
+} as const;
+
+const createBudget = async (userId: string, data: {amount: number, month: number, year: number, categoryId: string, icon?: string}) => {
     return prisma.budget.create({
         data: {
             amount: data.amount,
             month: data.month,
             year: data.year,
             categoryId: data.categoryId,
-            userId
+            userId,
+            icon: data.icon
         },
-        include: {
-            category: true
-        }
+        select: budgetSelect
     });
 }
 
 const getBudgets = async (userId: string, filter: GetBudgetsInput) => {
-    const budgets = await prisma.budget.findMany({
-        where: {
-            userId,
-            month: filter.month,
-            year: filter.year,
-            deletedAt: null
-        },
-        include: {
-            category: true
-        }
-    });
+    const where = {
+        userId,
+        month: filter.month,
+        year: filter.year,
+        deletedAt: null
+    };
+    
+    const [budgets, total] = await prisma.$transaction([
+        prisma.budget.findMany({
+            where,
+            select: budgetSelect,
+            orderBy: {
+                createdAt: "asc"
+            }
+        }),
+        prisma.budget.count({where})
+    ]);
 
-    return {
-        budgets,
-        total: budgets.length
-    }
+    return { budgets, total };
 }
 
 const getBudgetById = async (id: string, userId: string) => {
@@ -42,21 +60,21 @@ const getBudgetById = async (id: string, userId: string) => {
             userId,
             deletedAt: null
         },
-        include: {
-            category: true
-        }
+        select: budgetSelect
     });
 }
 
-const updateBudget = async (id: string, userId: string, data: UpdateBudgetInput) => {
+const updateBudget = async (id: string, userId: string, data: {amount?: number; icon?: string}) => {
     return prisma.budget.update({
         where: {
             id,
             userId
         },
         data: {
-            amount: data.amount
-        }
+            ...(data.amount !== undefined && { amount: data.amount }),
+            ...(data.icon !== undefined && { icon: data.icon})
+        },
+        select: budgetSelect
     });
 }
 
@@ -80,6 +98,10 @@ const findExistingBudget = async (userId: string, categoryId: string, month: num
       month,
       year,
       deletedAt: null
+    },
+    select: {
+        id: true,
+        amount: true
     }
   });
 }

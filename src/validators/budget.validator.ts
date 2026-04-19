@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { string, z } from "zod";
 
 export const createBudgetSchema = z.object({
     amount: z
@@ -14,13 +14,23 @@ export const createBudgetSchema = z.object({
     .max(2100),
     categoryId: z
     .string()
-    .uuid("Invalid category ID")
+    .uuid("Invalid category ID"),
+    icon: z
+    .string()
+    .min(1)
+    .max(50)
+    .optional()
 }).strict();
 
 export const updateBudgetSchema = z.object({
   amount: z
   .number()
   .positive("Amount must be greater than 0")
+  .optional(),
+  icon: z
+  .string()
+  .min(1)
+  .max(50)
   .optional()
 }).strict().refine(
   (data) => Object.keys(data).length > 0,
@@ -30,7 +40,7 @@ export const updateBudgetSchema = z.object({
 export const budgetIdSchema = z.object({
     id: z
     .string()
-    .uuid("INvalid buget ID")
+    .uuid("Invalid buget ID")
 })
 
 export const getBudgetsSchema = z.object({
@@ -46,7 +56,15 @@ export const getBudgetsSchema = z.object({
     .min(2000)
     .max(2100)
     .optional()
-}).strict();
+}).strict().refine(
+  (data) => {
+    if (data.month !== undefined || data.year !== undefined) {
+      return data.month !== undefined && data.year !== undefined;
+    }
+    return true;
+  },
+  { message: "month and year must both be provided together"}
+);
 
 
 export type CreateBudgetInput = z.infer<typeof createBudgetSchema>;

@@ -4,6 +4,9 @@ import morgan from "morgan";
 import { env } from "./config/env";
 import { errorMiddleware } from "./middlewares/error.middleware";
 import cookieParser from "cookie-parser";
+import compression from "compression";
+import helmet from "helmet";
+
 import authRouter from "./routes/auth.routes";
 import categoryRouter from "./routes/category.routes";
 import transactionRouter from "./routes/transaction.routes";
@@ -18,9 +21,8 @@ const app = express();
 // Middlewares
 app.use(express.json());
 app.use(cookieParser());
-// Middlewares
-app.use(express.json());
-app.use(cookieParser());
+app.use(compression());
+app.use(helmet());
 app.use(cors({
   origin: true, // This automatically allows the origin of the requester
   credentials: true

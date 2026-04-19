@@ -1,8 +1,9 @@
 import { NotFoundError } from "../errors/NotFoundError";
-import { NotificationRepository } from "../repositories/notification.repository"
+import { NotificationRepository } from "../repositories/notification.repository";
+import { GetNotificationsInput } from "../validators/notification.validator";
 
-const getNotificationsService = async  (userId: string) => {
-    return NotificationRepository.getNotifications(userId);
+const getNotificationsService = async  (userId: string, filter: GetNotificationsInput) => {
+    return NotificationRepository.getNotifications(userId, filter);
 }
 
 const getUnreadCountService = async (userId: string) => {

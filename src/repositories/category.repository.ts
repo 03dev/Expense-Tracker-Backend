@@ -1,12 +1,22 @@
 import { prisma } from "../config/prisma"
 
-const createCategory = async (data: { name: string; userId: string; parentId?: string }) => {
+const categorySelect = {
+  id: true,
+  name: true,
+  icon: true,
+  parentId: true,
+  userId: true
+} as const;
+
+const createCategory = async (userId: string, data: { name: string; parentId?: string; icon?: string }) => {
   return prisma.category.create({
     data: {
       name: data.name,
-      userId: data.userId,
-      parentId: data.parentId
-    }
+      userId,
+      parentId: data.parentId,
+      icon: data.icon
+    },
+    select: categorySelect
   })
 }
 
@@ -15,6 +25,10 @@ const getCategories = async (userId: string) => {
     where: {
       userId,
       deletedAt: null  // exclude soft deleted
+    },
+    select: categorySelect,
+    orderBy: {
+      name: "asc"
     }
   })
 }
@@ -26,13 +40,19 @@ const getCategoryById = async (uuid: string, userId: string) => {
         userId,
         deletedAt: null // exclude soft deleted
       },
-      include: {
-        children: true // include subcategories
+      select: {
+        ...categorySelect,
+        children: {
+          where: {
+            deletedAt: null
+          },
+          select: categorySelect
+        }
       }
     })
 }
 
-const updateCategory = async (uuid: string, userId: string, updatedName: string) => {
+const updateCategory = async (uuid: string, userId: string, data: {name?: string; icon?: string}) => {
   return prisma.category.update({
     where:{
       id: uuid,
@@ -40,8 +60,10 @@ const updateCategory = async (uuid: string, userId: string, updatedName: string)
       deletedAt: null // exculde soft deleted
     },
     data: {
-      name: updatedName
-    }
+      ...(data.name && { name: data.name}),
+      ...(data.icon !== undefined && { icon: data.icon})
+    },
+    select: categorySelect
   })
 }
 

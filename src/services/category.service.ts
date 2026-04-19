@@ -1,15 +1,15 @@
-import { BadRequestError } from "../errors/BadRequestError";
 import { NotFoundError } from "../errors/NotFoundError";
 import { CategoryRepository } from "../repositories/category.repository"
+import { CreateCategoryInput, UpdateCategoryInput } from "../validators/category.validator";
 
-const createCategoryService = async (categoryName: string, userId: string, parentCategoryId?: string) => {
-  if (parentCategoryId) {
-    const parentCategory = await CategoryRepository.getCategoryById(parentCategoryId, userId);
+const createCategoryService = async (userId: string, data: CreateCategoryInput) => {
+  if (data.parentId) {
+    const parentCategory = await CategoryRepository.getCategoryById(data.parentId, userId);
     if (!parentCategory) {
       throw new NotFoundError("Parent category not found")
     }
   }
-  return CategoryRepository.createCategory({ name: categoryName, userId, parentId: parentCategoryId });
+  return CategoryRepository.createCategory(userId, data);
 }
 
 const getCategoriesService = async (userId: string) => {
@@ -26,14 +26,14 @@ const getCategoryByIdService = async (uuid: string, userId: string) => {
     return category;
 }
 
-const updateCategoryService = async (uuid: string, userId: string, name: string) => {
+const updateCategoryService = async (uuid: string, userId: string, data: UpdateCategoryInput) => {
     const category = await CategoryRepository.getCategoryById(uuid,userId);
 
     if(!category) {
         throw new NotFoundError("Category not found");
     }
 
-    return CategoryRepository.updateCategory(uuid, userId, name);
+    return CategoryRepository.updateCategory(uuid, userId, data);
 }
 
 const deleteCategoryService = async (uuid: string, userId: string) => {

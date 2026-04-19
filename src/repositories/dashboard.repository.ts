@@ -1,38 +1,47 @@
 import { prisma } from "../config/prisma";
 
-const dashboardData = async (userId: string) => {
+const dashboardData = async (
+    userId: string,
+    month: number,
+    year: number
+) => {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
 
-    const [income, expense, transactions] = await prisma.$transaction([
-        prisma.transaction.aggregate({
+    const [summary, recentTransactions, categoryBreakdown] = await prisma.$transaction([
+        // 1. Get both income and expense in ONE query using groupBy
+        prisma.transaction.groupBy({
+            by: ["type"],
             where: {
                 userId,
-                type: "INCOME",
-                deletedAt: null
+                deletedAt: null,
+                date: {gte: startDate, lte: endDate}
             },
             _sum: {
                 amount: true
-            }
-        }),
-        prisma.transaction.aggregate({
-            where: {
-                userId,
-                type: "EXPENSE",
-                deletedAt: null
             },
-            _sum: {
-                amount: true
+            _count: {
+                id: true
             }
         }),
+
+        // 2. Recent transactions with select (not include)
         prisma.transaction.findMany({
             where: {
                 userId,
                 deletedAt: null
             },
             orderBy: {
-                date: 'desc'
+                date: "desc"
             },
             take: 5,
-            include: {
+            select: {
+                id: true,
+                amount: true,
+                type: true,
+                date: true,
+                note: true,
+                merchant: true,
                 category: {
                     select: {
                         id: true,
@@ -40,13 +49,39 @@ const dashboardData = async (userId: string) => {
                     }
                 }
             }
+        }),
+
+        // 3. Top spending categories — actually useful for a dashboard
+        prisma.transaction.groupBy({
+            by: ["categoryId"],
+            where: {
+                userId,
+                type: "EXPENSE",
+                deletedAt: null,
+                date: {gte: startDate, lte: endDate}
+            },
+            _sum: {
+                amount: true
+            },
+            orderBy: {
+                _sum: {
+                    amount: "desc"
+                }
+            },
+            take: 5
         })
-    ]);
+    ])
+
+    // Parse the groupBy result cleanly
+    const incomeData = summary.find(s => s.type === "INCOME");
+    const expenseData = summary.find(s => s.type === "EXPENSE");
 
     return {
-        income: Number(income._sum.amount ?? 0),
-        expense: Number(expense._sum.amount ?? 0),
-        transactions
+        income: Number(incomeData?._sum.amount ?? 0),
+        expense: Number(expenseData?._sum.amount ?? 0),
+        transactionCount: (incomeData?._count.id ?? 0) + (expenseData?._count.id ?? 0),
+        recentTransactions,
+        topCategories: categoryBreakdown
     }
 }
 

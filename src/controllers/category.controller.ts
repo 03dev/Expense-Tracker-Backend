@@ -7,9 +7,8 @@ import { getBody, getParams } from "../utils/getValidated";
 const createCategory = async (req: AuthenticatedRequest, res: Response) => {
   const body = getBody<CreateCategoryInput>(req);
   const category = await CategoryService.createCategoryService(
-    body.name,
     req.user.id,
-    body.parentId
+    body
   );
   return res.status(201).json({
     success: true,
@@ -44,7 +43,7 @@ const updateCategory = async (req: AuthenticatedRequest, res: Response) => {
   const category = await CategoryService.updateCategoryService(
     param.id,
     req.user.id,
-    body.name!
+    body
   );
   return res.status(200).json({
     success: true,

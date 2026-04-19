@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from "express";
 import { AppError } from "../errors/AppError";
 import { env } from "../config/env"
 import { logger } from "../utils/logger";
-// import { PrismaClientKnownRequestError } from "../generated/prisma/runtime/client";
 import { Prisma } from "@prisma/client";
 
 export const errorMiddleware = (

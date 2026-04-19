@@ -47,11 +47,14 @@ model RefreshToken {
   expiresAt DateTime
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Category {
   id           String        @id @default(uuid())
   name         String
+  icon         String?
   parentId     String?
   userId       String?
   createdAt    DateTime      @default(now())
@@ -63,6 +66,8 @@ model Category {
   budgets      Budget[]
 
   @@unique([userId, name])
+  @@index([userId])
+  @@index(parentId)
 }
 
 model Transaction {
@@ -83,11 +88,18 @@ model Transaction {
   categoryId String
   user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   category   Category        @relation(fields: [categoryId], references: [id])
+
+  @@index([userId])
+  @@index([userId, date])
+  @@index([userId, categoryId])
+  @@index([userId, deletedAt])
+  @@index([date])
 }
 
 model Budget {
   id         String    @id @default(uuid())
   amount     Decimal   @db.Decimal(10, 2)
+  icon       String?
   month      Int
   year       Int
   createdAt  DateTime  @default(now())
@@ -98,6 +110,8 @@ model Budget {
   category   Category  @relation(fields: [categoryId], references: [id])
 
   @@unique([userId, categoryId, month, year])
+  @@index([userId])
+  @@index([userId, month, year])
 }
 
 model Notification {
@@ -109,4 +123,7 @@ model Notification {
   createdAt DateTime @default(now())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
 }

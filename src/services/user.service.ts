@@ -26,7 +26,7 @@ const updateProfileService = async (userId: string, name: string) => {
 }
 
 const changePasswordService = async (userId: string, currentPassword: string, newPassword: string) => {
-    const user = await UserRepository.userDetails(userId);
+    const user = await UserRepository.getUserWithPassword(userId);
 
     if(!user) {
         throw new NotFoundError("User not found");
@@ -43,7 +43,7 @@ const changePasswordService = async (userId: string, currentPassword: string, ne
 }
 
 const uploadAvatarService = async (userId: string, buffer: Buffer) => {
-    const user = await UserRepository.userDetails(userId);
+    const user = await UserRepository.findUserById(userId);
 
     if(!user) {
         throw new NotFoundError("User not found");

@@ -11,7 +11,7 @@ const createBudgetService = async (userId: string, data: CreateBudgetInput) => {
         throw new NotFoundError("Category not found");
     }
 
-    const existingBudget = await BudgetRepository.findExistingBudget(userId, data.categoryId, data.month,data.year);
+    const existingBudget = await BudgetRepository.findExistingBudget(userId, data.categoryId, data.month, data.year);
 
     if(existingBudget) {
         throw new BadRequestError("Budget already exits");

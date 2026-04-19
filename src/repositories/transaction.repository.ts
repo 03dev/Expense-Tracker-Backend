@@ -56,9 +56,22 @@ const getTransactions = async (userId: string, filters: TransactionQueryParams) 
       skip,
       take: filters.limit,
       orderBy: { date: filters.sortOrder },
-      include: {
+      select: {
+        id: true,
+        amount: true,
+        type: true,
+        date: true,
+        note: true,
+        merchant: true,
+        location: true,
+        isRecurring: true,
+        tags: true,
+        categoryId: true,
         category: {
-          select: { id: true, name: true }
+          select: {
+            id: true,
+            name: true
+          }
         }
       }
     }),
@@ -81,9 +94,23 @@ const getTransactionById = async (transactionId: string, userId: string) => {
       userId,
       deletedAt: null
     },
-    include: {
+    select: {
+      id: true,
+      amount: true,
+      type: true,
+      date: true,
+      note: true,
+      receiptUrl: true,
+      merchant: true,
+      location: true,
+      isRecurring: true,
+      tags: true,
+      createdAt: true,
       category: {
-        select: { id: true, name: true }
+        select: {
+          id: true,
+          name: true
+        }
       }
     }
   })
@@ -119,6 +146,15 @@ const updateTransaction = async (data: {
       tags: data.tags,
       date: data.date,
       categoryId: data.categoryId,
+    },
+    select: {
+      id: true,
+      amount: true,
+      type: true,
+      date: true,
+      note: true,
+      merchant: true,
+      categoryId: true
     }
   });
 }

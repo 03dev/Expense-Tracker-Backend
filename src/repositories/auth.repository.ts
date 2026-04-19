@@ -14,6 +14,27 @@ const findUserByEmail = async (email: string) => {
     return prisma.user.findUnique({
         where: {
             email: email
+        },
+        select: {
+            id: true,
+            email: true,
+            password:  true, // only when needed for auth
+            name: true
+        }
+    })
+}
+
+const findUserById = async (userId: string) => {
+    return prisma.user.findUnique({
+        where: {
+            id: userId
+        },
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+            createdAt: true
         }
     })
 }
