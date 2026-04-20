@@ -10,7 +10,7 @@ const getMonthlySummary = async (userId: string, month: number, year: number) =>
         date: { gte: startOfMonth, lt: endOfMonth}
     };
 
-    const [summary, categoryBreakdown, transactionCount] = await prisma.$transaction([
+    const [summary, categoryBreakdown, transactionCount, incomeCount, expenseCount] = await prisma.$transaction([
 
         // 1. Income vs Expense totals
         prisma.transaction.groupBy({
@@ -19,9 +19,7 @@ const getMonthlySummary = async (userId: string, month: number, year: number) =>
             _sum: {
                 amount: true
             },
-            _count: {
-                id: true
-            }
+            orderBy: []
         }),
 
         // 2. Spending per category
@@ -34,9 +32,6 @@ const getMonthlySummary = async (userId: string, month: number, year: number) =>
             _sum: {
                 amount: true
             },
-            _count: {
-                id: true
-            },
             orderBy: {
                 _sum: {
                     amount: "desc"
@@ -46,25 +41,27 @@ const getMonthlySummary = async (userId: string, month: number, year: number) =>
         }),
 
         // 3. Total transaction count
-        prisma.transaction.count({where})
+        prisma.transaction.count({where}),
+        prisma.transaction.count({ where: { ...where, type: "INCOME" } }),
+        prisma.transaction.count({ where: { ...where, type: "EXPENSE" } }),
     ]);
 
     // Parse groupBy result
     const incomeRow = summary.find(r => r.type === "INCOME");
     const expenseRow = summary.find(r => r.type === "EXPENSE");
 
-    const totalIncome = Number(incomeRow?._sum.amount ?? 0);
-    const totalExpense = Number(expenseRow?._sum.amount ?? 0);
+    const totalIncome = Number(incomeRow?._sum?.amount ?? 0);
+    const totalExpense = Number(expenseRow?._sum?.amount ?? 0);
 
     return {
         month,
         year,
         totalIncome,
         totalExpense,
-        net: totalExpense - totalExpense,
+        net: totalIncome - totalExpense,
         transactionCount,
-        incomeTransactionCount: incomeRow?._count.id ?? 0,
-        expenseTransactionCount: expenseRow?._count ?? 0,
+        incomeTransactionCount: incomeCount,
+        expenseTransactionCount: expenseCount,
         categoryBreakdown
     }
 }
@@ -83,7 +80,7 @@ const getLastSixMonthsData = async (userId: string) => {
         SELECT
             EXTRACT(YEAR FROM date)::int AS year,
             EXTRACT(MONTH FROM date)::int AS month,
-            type,
+            type::text AS type,
             SUM(amount):: FLOAT AS total
         FROM "Transaction"
         WHERE
@@ -99,6 +96,13 @@ const getLastSixMonthsData = async (userId: string) => {
             year ASC, month ASC
     `;
 
+    const normalized = rows.map(r => ({
+    ...r,
+        year:  Number(r.year),
+        month: Number(r.month),
+        total: Number(r.total)
+    }));
+
     // Build the 6-month array, filling zeros for month with no data
     const months = [];
     for (let i = 5;i >= 0; i--) {
@@ -107,8 +111,8 @@ const getLastSixMonthsData = async (userId: string) => {
         const year = date.getFullYear();
 
         // Find maching rows from the single query result
-        const incomeRow = rows.find(r => r.year === year && r.month === month && r.type === "INCOME");
-        const expenseRow = rows.find(r => r.year === year && r.month === month && r.type === "EXPENSE");
+        const incomeRow  = normalized.find(r => r.year === year && r.month === month && r.type === "INCOME");
+        const expenseRow = normalized.find(r => r.year === year && r.month === month && r.type === "EXPENSE");
 
         const income = incomeRow?.total ?? 0;
         const expense = expenseRow?.total ?? 0;
@@ -140,14 +144,11 @@ const getTopMerchants = async (userId: string, month: number, year: number) => {
             merchant: { not: null},
             date: {
                 gte: startOfMonth,
-                lte: endOfMonth
+                lt: endOfMonth
             }
         },
         _sum: {
             amount: true
-        },
-        _count: {
-            id: true
         },
         orderBy: {
             _sum: {
@@ -159,8 +160,7 @@ const getTopMerchants = async (userId: string, month: number, year: number) => {
 
     return result.map(r => ({
         merchant: r.merchant!,
-        total: Number(r._sum.amount ?? 0),
-        transactionCount: r._count.id
+        total: Number(r._sum.amount ?? 0)
     }));
 }
 

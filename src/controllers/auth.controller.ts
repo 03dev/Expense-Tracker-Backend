@@ -8,7 +8,7 @@ import { getBody } from "../utils/getValidated";
 
 const signUpController = async (req: AppRequest, res: Response) => {
     const body = getBody<RegisterInput>(req);
-    const { accessToken, refreshToken } = await AuthServices.registerService(body);
+    const { user, accessToken, refreshToken } = await AuthServices.registerService(body);
 
     res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
@@ -19,6 +19,7 @@ const signUpController = async (req: AppRequest, res: Response) => {
 
     return res.status(201).json({
         success: true,
+        user,
         message: "User registered successfully",
         accessToken
     });
@@ -26,7 +27,7 @@ const signUpController = async (req: AppRequest, res: Response) => {
 
 const loginController = async (req: AppRequest, res: Response) => {
     const body = getBody<LoginInput>(req);
-    const { accessToken, refreshToken } = await AuthServices.loginService(body);
+    const { user, accessToken, refreshToken } = await AuthServices.loginService(body);
 
     res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
@@ -37,6 +38,7 @@ const loginController = async (req: AppRequest, res: Response) => {
 
     return res.status(201).json({
         success: true,
+        user,
         message: "User login successfully",
         accessToken
     });

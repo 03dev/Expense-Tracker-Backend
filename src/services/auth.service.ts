@@ -37,6 +37,11 @@ const registerService = async (data: {
   logger.info(`New user registered: ${user.email}`);
 
   return {
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    },
     accessToken,
     refreshToken,
   };
@@ -73,6 +78,11 @@ const loginService = async (data: { email: string; password: string }) => {
   logger.info(`User logged in: ${user.email}`);
 
   return {
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    },
     accessToken,
     refreshToken,
   };

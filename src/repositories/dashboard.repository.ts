@@ -20,9 +20,7 @@ const dashboardData = async (
             _sum: {
                 amount: true
             },
-            _count: {
-                id: true
-            }
+            orderBy: []
         }),
 
         // 2. Recent transactions with select (not include)
@@ -77,9 +75,8 @@ const dashboardData = async (
     const expenseData = summary.find(s => s.type === "EXPENSE");
 
     return {
-        income: Number(incomeData?._sum.amount ?? 0),
-        expense: Number(expenseData?._sum.amount ?? 0),
-        transactionCount: (incomeData?._count.id ?? 0) + (expenseData?._count.id ?? 0),
+        income: Number(incomeData?._sum?.amount ?? 0),
+        expense: Number(expenseData?._sum?.amount ?? 0),
         recentTransactions,
         topCategories: categoryBreakdown
     }

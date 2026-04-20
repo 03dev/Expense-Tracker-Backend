@@ -2,74 +2,42 @@ import { AnalyticsRepository } from "../repositories/analytics.repository";
 import { AnalyticsQueryInput } from "../validators/analytics.validator";
 
 const getAnalyticsService = async (userId: string, query: AnalyticsQueryInput) => {
-  const now = new Date();
-  const month = query.month ?? now.getMonth() + 1;
-  const year = query.year ?? now.getFullYear();
+    const now = new Date();
+    const month = query.month ?? now.getMonth() + 1;
+    const year  = query.year  ?? now.getFullYear();
 
-  // Get all transactions for this month
-  const transactions = await AnalyticsRepository.getMonthlySummary(userId, month, year);
+    // Last month calculation for comparison
+    const lastMonth     = month === 1 ? 12 : month - 1;
+    const lastMonthYear = month === 1 ? year - 1 : year;
 
-  // Calculate totals
-  const totalIncome = transactions
-    .filter(t => t.type === 'INCOME')
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+    // All three run, last six months is independent
+    const [currentSummary, lastMonthSummary, monthlyTrend, topMerchants] = await Promise.all([
+        AnalyticsRepository.getMonthlySummary(userId, month, year),
+        AnalyticsRepository.getMonthlySummary(userId, lastMonth, lastMonthYear),
+        AnalyticsRepository.getLastSixMonthsData(userId),
+        AnalyticsRepository.getTopMerchants(userId, month, year)
+    ]);
 
-  const totalExpenses = transactions
-    .filter(t => t.type === 'EXPENSE')
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+    // Month over month expense change
+    const expenseChange = lastMonthSummary.totalExpense === 0
+        ? 0
+        : ((currentSummary.totalExpense - lastMonthSummary.totalExpense) 
+           / lastMonthSummary.totalExpense) * 100;
 
-  const netBalance = totalIncome - totalExpenses;
-
-  // Spending by category
-  const categoryMap = new Map<string, { name: string; total: number }>();
-  transactions
-    .filter(t => t.type === 'EXPENSE')
-    .forEach(t => {
-      const categoryId = t.categoryId;
-      const categoryName = t.category.name;
-      const current = categoryMap.get(categoryId) ?? { name: categoryName, total: 0 };
-      categoryMap.set(categoryId, {
-        name: categoryName,
-        total: current.total + Number(t.amount)
-      });
-    });
-
-  const spendingByCategory = Array.from(categoryMap.entries())
-    .map(([id, data]) => ({ id, ...data }))
-    .sort((a, b) => b.total - a.total);
-
-  // Last 6 months trend
-  const monthlyTrend = await AnalyticsRepository.getLastSixMonthsData(userId);
-
-  // Top merchants
-  const topMerchants = await AnalyticsRepository.getTopMerchants(userId, month, year);
-
-  // Month over month comparison
-  const lastMonth = month === 1 ? 12 : month - 1;
-  const lastMonthYear = month === 1 ? year - 1 : year;
-  const lastMonthTransactions = await AnalyticsRepository.getMonthlySummary(userId, lastMonth, lastMonthYear);
-
-  const lastMonthExpenses = lastMonthTransactions
-    .filter(t => t.type === 'EXPENSE')
-    .reduce((sum, t) => sum + Number(t.amount), 0);
-
-  const expenseChange = lastMonthExpenses === 0
-    ? 0
-    : ((totalExpenses - lastMonthExpenses) / lastMonthExpenses) * 100;
-
-  return {
-    month,
-    year,
-    totalIncome,
-    totalExpenses,
-    netBalance,
-    expenseChange: expenseChange.toFixed(1),
-    spendingByCategory,
-    monthlyTrend,
-    topMerchants,
-  };
+    return {
+        month,
+        year,
+        totalIncome:        currentSummary.totalIncome,
+        totalExpense:       currentSummary.totalExpense,
+        net:                currentSummary.net,
+        transactionCount:   currentSummary.transactionCount,
+        spendingByCategory: currentSummary.categoryBreakdown,
+        expenseChange:      expenseChange.toFixed(1),
+        monthlyTrend,
+        topMerchants,
+    };
 }
 
 export const AnalyticsService = {
-  getAnalyticsService
+    getAnalyticsService
 }
