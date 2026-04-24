@@ -9,6 +9,13 @@ const createCategoryService = async (userId: string, data: CreateCategoryInput) 
       throw new NotFoundError("Parent category not found")
     }
   }
+
+  const existingCategory = await CategoryRepository.findCategoryByUserIdAndName(userId, data.name);
+
+  if(existingCategory) {
+    return CategoryRepository.restoreCategory(existingCategory.id, data);
+  }
+  
   return CategoryRepository.createCategory(userId, data);
 }
 

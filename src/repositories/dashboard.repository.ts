@@ -8,7 +8,7 @@ const dashboardData = async (
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59, 999);
 
-    const [summary, recentTransactions, categoryBreakdown] = await prisma.$transaction([
+    const [summary, recentTransactions, categoryBreakdown] = await Promise.all([
         // 1. Get both income and expense in ONE query using groupBy
         prisma.transaction.groupBy({
             by: ["type"],

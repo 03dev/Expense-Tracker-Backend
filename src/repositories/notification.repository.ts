@@ -31,7 +31,7 @@ const createNotification = async (data: {
 const getNotifications = async (userId: string, filter: GetNotificationsInput) => {
     const where = { userId };
 
-    const [notification, total, unreadCount] = await prisma.$transaction([
+    const [notification, total, unreadCount] = await Promise.all([
         prisma.notification.findMany({
             where,
             orderBy: {

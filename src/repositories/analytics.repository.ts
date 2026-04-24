@@ -10,7 +10,7 @@ const getMonthlySummary = async (userId: string, month: number, year: number) =>
         date: { gte: startOfMonth, lt: endOfMonth}
     };
 
-    const [summary, categoryBreakdown, transactionCount, incomeCount, expenseCount] = await prisma.$transaction([
+    const [summary, categoryBreakdown, transactionCount, incomeCount, expenseCount] = await Promise.all([
 
         // 1. Income vs Expense totals
         prisma.transaction.groupBy({

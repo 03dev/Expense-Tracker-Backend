@@ -24,13 +24,24 @@ const getCategories = async (userId: string) => {
   return prisma.category.findMany({
     where: {
       userId,
-      deletedAt: null  // exclude soft deleted
+      deletedAt: null
     },
-    select: categorySelect,
+    select: {
+      ...categorySelect,
+      _count: {
+        select: {
+          transactions: {
+            where: {
+              deletedAt: null  // don't count soft deleted transactions
+            }
+          }
+        }
+      }
+    },
     orderBy: {
       name: "asc"
     }
-  })
+  });
 }
 
 const getCategoryById = async (uuid: string, userId: string) => {
@@ -79,10 +90,32 @@ const deleteCategory = async (uuid: string, userId: string) => {
   })
 }
 
+const findCategoryByUserIdAndName = async (userId: string, name: string) => {
+  return prisma.category.findFirst({
+    where: {
+      userId,
+      name,
+      deletedAt: { not: null }
+    }
+  })
+}
+
+const restoreCategory = async (id: string, data: { name?: string; icon?: string }) => {
+  return prisma.category.update({
+    where: { id },
+    data: {
+      ...data,
+      deletedAt: null
+    }
+  })
+}
+
 export const CategoryRepository = {
   createCategory,
   getCategories,
   getCategoryById,
   updateCategory,
-  deleteCategory
+  deleteCategory,
+  findCategoryByUserIdAndName,
+  restoreCategory
 }
