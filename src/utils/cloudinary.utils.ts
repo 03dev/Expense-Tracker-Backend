@@ -22,14 +22,16 @@ export const  uploadImage = (
                 ],
             },
             (error, result) => {
-                if(error) reject(error);
-                else resolve(result!.secure_url);
-
-                logger.error(`Cloudinary upload failed`, error);
+                if (error) {
+                    logger.error(`Cloudinary upload failed`, error);
+                    reject(error);
+                } else {
+                    logger.info(`Image uploaded to Cloudinary`, { folder, publicId });
+                    resolve(result!.secure_url);
+                }
             }
         );
         uploadStream.end(buffer);
-        logger.info(`Image uploaded to Cloudinary`, { folder, publicId });
     });
 };
 

@@ -1,4 +1,4 @@
-import Router from "express";
+import { Router } from "express";
 import authMiddleware from "../middlewares/auth.middleware";
 import { DashboardController } from "../controllers/dashboard.controller";
 import { asyncHandler } from "../utils/asyncHandler";

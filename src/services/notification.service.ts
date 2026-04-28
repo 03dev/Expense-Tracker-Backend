@@ -1,43 +1,35 @@
 import { NotFoundError } from "../errors/NotFoundError";
-import { NotificationRepository } from "../repositories/notification.repository";
+import { notificationRepository } from "../repositories/notification.repository";
 import { GetNotificationsInput } from "../validators/notification.validator";
 
-const getNotificationsService = async  (userId: string, filter: GetNotificationsInput) => {
-    return NotificationRepository.getNotifications(userId, filter);
-}
+const getNotificationsService = async (userId: string, filter: GetNotificationsInput) => {
+  return notificationRepository.getNotifications(userId, filter);
+};
 
 const getUnreadCountService = async (userId: string) => {
-    return NotificationRepository.getUnreadCount(userId);
-}
+  return notificationRepository.getUnreadCount(userId);
+};
 
 const markAsReadService = async (id: string, userId: string) => {
-    const notification = await NotificationRepository.getNotificationById(id, userId);
-
-    if(!notification) {
-        throw new NotFoundError("Notification not found");
-    }
-
-    await NotificationRepository.markAsRead(id, userId);
-}
+  const notification = await notificationRepository.getNotificationById(id, userId);
+  if (!notification) throw new NotFoundError("Notification not found");
+  return notificationRepository.markAsRead(id, userId);
+};
 
 const markAllAsReadService = async (userId: string) => {
-    await NotificationRepository.markAllAsRead(userId);
-}
+  await notificationRepository.markAllAsRead(userId);
+};
 
 const deleteNotificationService = async (id: string, userId: string) => {
-    const notification = await NotificationRepository.getNotificationById(id, userId);
-
-    if(!notification) {
-        throw new NotFoundError("Notification not found");
-    }
-
-    await NotificationRepository.deleteNotification(id, userId);
-}
+  const notification = await notificationRepository.getNotificationById(id, userId);
+  if (!notification) throw new NotFoundError("Notification not found");
+  await notificationRepository.deleteNotification(id, userId);
+};
 
 export const NotificationService = {
-    getNotificationsService,
-    getUnreadCountService,
-    markAsReadService,
-    markAllAsReadService,
-    deleteNotificationService
-}
+  getNotificationsService,
+  getUnreadCountService,
+  markAsReadService,
+  markAllAsReadService,
+  deleteNotificationService,
+};

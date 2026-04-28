@@ -1,74 +1,64 @@
-import { prisma } from "../config/prisma"
+import { prisma } from "../config/prisma";
 
 const publicUserSelect = {
-    id: true,
-    name: true,
-    email: true,
-    avatarUrl: true,
-    createdAt: true,
-    updatedAt: true
+  id: true,
+  name: true,
+  email: true,
+  avatarUrl: true,
+  createdAt: true,
+  updatedAt: true,
 } as const;
 
-const getUserWithPassword = async (userId: string) => {
+class UserRepository {
+  async getUserWithPassword(userId: string) {
     return prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-            id: true,
-            name: true,
-            email: true,
-            password: true
-        }
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        password: true,
+      },
     });
-}
+  }
 
-const findUserById = async (userId: string) => {
+  async findUserById(userId: string) {
     return prisma.user.findUnique({
-        where: {
-            id: userId
-        },
-        select: publicUserSelect
+      where: { id: userId },
+      select: publicUserSelect,
     });
-}
+  }
 
-const updateProfile = async (userId: string, name: string) => {
+  async findPublicUserByEmail(email: string) {
+    return prisma.user.findUnique({
+      where: { email },
+      select: publicUserSelect,
+    });
+  }
+
+  async updateProfile(userId: string, name: string) {
     return prisma.user.update({
-        where: {
-            id: userId
-        },
-        data: {
-            name
-        },
-        select: publicUserSelect
+      where: { id: userId },
+      data: { name },
+      select: publicUserSelect,
     });
-}
+  }
 
-const updateAvatar = async (userId: string, avatarUrl: string) => {
+  async updateAvatar(userId: string, avatarUrl: string) {
     return prisma.user.update({
-        where: {
-            id: userId
-        },
-        data: {
-            avatarUrl
-        },
-        select: publicUserSelect
+      where: { id: userId },
+      data: { avatarUrl },
+      select: publicUserSelect,
     });
-}
+  }
 
-const updatePassword = async (userId: string, hashedPassword: string) => {
+  async updatePassword(userId: string, hashedPassword: string) {
     await prisma.user.update({
-        where: {
-            id: userId
-        },
-        data: {
-            password: hashedPassword
-        }
+      where: { id: userId },
+      data: { password: hashedPassword },
+      select: { id: true },
     });
+  }
 }
 
-export const UserRepository = {
-    getUserWithPassword,
-    findUserById,
-    updateProfile,
-    updateAvatar,
-    updatePassword
-}
+export const userRepository = new UserRepository();

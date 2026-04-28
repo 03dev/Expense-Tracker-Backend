@@ -1,8 +1,8 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import { validate } from "../middlewares/validate.middleware";
 import { loginSchema, registerSchema } from "../validators/auth.validator"
 import { AuthController } from "../controllers/auth.controller";
-import { authRateLimit } from "../middlewares/rateLimit.middleware";
+import { authRateLimit, tokenRateLimit } from "../middlewares/rateLimit.middleware";
 
 const router = Router();
 
@@ -10,8 +10,8 @@ router.post('/signup', authRateLimit, validate({body: registerSchema}), AuthCont
 
 router.post('/login', authRateLimit, validate({body: loginSchema}), AuthController.loginController);
 
-router.post('/logout', AuthController.logoutController);
+router.post('/logout', tokenRateLimit, AuthController.logoutController);
 
-router.post('/refresh', AuthController.refreshTokenController);
+router.post('/refresh', tokenRateLimit, AuthController.refreshTokenController);
 
 export default router;

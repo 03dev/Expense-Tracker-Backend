@@ -50,7 +50,7 @@ app.use("/auth", authRouter);
 app.use("/categories", categoryRouter);
 app.use("/transactions", transactionRouter);
 app.use("/budgets", budgetRouter)
-app.use("/notification", notificationRouter);
+app.use("/notifications", notificationRouter);
 app.use("/analytics", analyticsRouter);
 app.use("/user", userRouter);
 app.use("/dashboard", dashboardRouter);

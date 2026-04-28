@@ -1,171 +1,175 @@
 import { prisma } from "../config/prisma";
+import { BaseRepository } from "./baseRepository";
 
-const getMonthlySummary = async (userId: string, month: number, year: number) => {
-    const startOfMonth = new Date(year, month - 1, 1);
-    const endOfMonth = new Date(year, month, 1);
+class AnalyticsRepository extends BaseRepository<typeof prisma.transaction> {
+  constructor() {
+    super(prisma.transaction);
+  }
 
-    const where = {
-        userId,
-        deletedAt: null,
-        date: { gte: startOfMonth, lt: endOfMonth}
+  private getMonthRange(month: number, year: number) {
+    return {
+      start: new Date(year, month - 1, 1),
+      end: new Date(year, month, 1),
     };
+  }
 
-    const [summary, categoryBreakdown, transactionCount, incomeCount, expenseCount] = await Promise.all([
+  async getMonthlySummary(userId: string, month: number, year: number) {
+    const { start, end } = this.getMonthRange(month, year);
+    const where = this.baseWhere(userId, {
+      date: { gte: start, lt: end },
+    });
 
-        // 1. Income vs Expense totals
-        prisma.transaction.groupBy({
-            by: ["type"],
-            where,
-            _sum: {
-                amount: true
-            },
-            orderBy: []
-        }),
-
-        // 2. Spending per category
-        prisma.transaction.groupBy({
-            by: ["categoryId"],
-            where: {
-                ...where,
-                type: "EXPENSE"
-            },
-            _sum: {
-                amount: true
-            },
-            orderBy: {
-                _sum: {
-                    amount: "desc"
-                }
-            },
-            take: 10
-        }),
-
-        // 3. Total transaction count
-        prisma.transaction.count({where}),
-        prisma.transaction.count({ where: { ...where, type: "INCOME" } }),
-        prisma.transaction.count({ where: { ...where, type: "EXPENSE" } }),
+    const [
+      summary,
+      categoryBreakdown,
+      transactionCount,
+      incomeCount,
+      expenseCount,
+    ] = await Promise.all([
+      this.delegate.groupBy({
+        by: ["type"],
+        where,
+        _sum: { amount: true },
+        orderBy: { type: "asc" },
+      }),
+      this.delegate.groupBy({
+        by: ["categoryId"],
+        where: { ...where, type: "EXPENSE" },
+        _sum: { amount: true },
+        orderBy: { _sum: { amount: "desc" } },
+        take: 10,
+      }),
+      this.delegate.count({ where }),
+      this.delegate.count({ where: { ...where, type: "INCOME" } }),
+      this.delegate.count({ where: { ...where, type: "EXPENSE" } }),
     ]);
 
-    // Parse groupBy result
-    const incomeRow = summary.find(r => r.type === "INCOME");
-    const expenseRow = summary.find(r => r.type === "EXPENSE");
+    const income = Number(
+      summary.find((r) => r.type === "INCOME")?._sum.amount ?? 0,
+    );
+    const expense = Number(
+      summary.find((r) => r.type === "EXPENSE")?._sum.amount ?? 0,
+    );
 
-    const totalIncome = Number(incomeRow?._sum?.amount ?? 0);
-    const totalExpense = Number(expenseRow?._sum?.amount ?? 0);
+    // Batch-fetch all categories in one query instead of N individual lookups
+    const categoryIds = categoryBreakdown
+      .map((r) => r.categoryId)
+      .filter((id): id is string => id !== null);
+
+    const categories = await prisma.category.findMany({
+      where: { id: { in: categoryIds } },
+      select: { id: true, name: true, icon: true },
+    });
+    const categoryMap = new Map(categories.map((c) => [c.id, c]));
+
+    const enrichedBreakdown = categoryBreakdown.map((row) => {
+      const category = categoryMap.get(row.categoryId!);
+      return {
+        categoryId: row.categoryId,
+        categoryName: category?.name ?? "Unknown",
+        icon: category?.icon ?? null,
+        total: Number(row._sum.amount ?? 0),
+      };
+    });
 
     return {
-        month,
-        year,
-        totalIncome,
-        totalExpense,
-        net: totalIncome - totalExpense,
-        transactionCount,
-        incomeTransactionCount: incomeCount,
-        expenseTransactionCount: expenseCount,
-        categoryBreakdown
-    }
-}
+      month,
+      year,
+      totalIncome: income,
+      totalExpense: expense,
+      net: income - expense,
+      transactionCount,
+      incomeTransactionCount: incomeCount,
+      expenseTransactionCount: expenseCount,
+      categoryBreakdown: enrichedBreakdown,
+    };
+  }
 
-const getLastSixMonthsData = async (userId: string) => {
+  async getLastSixMonthsData(userId: string) {
     const now = new Date();
-
-    // Calculate the date range covering all 6 month at once
     const startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
     const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-    // One query - PostgreSQL groups by month+year internally
     const rows = await prisma.$queryRaw<
-    {year: number; month: number; type: string; total: number}[]
+      { year: number; month: number; type: string; total: number }[]
     >`
-        SELECT
-            EXTRACT(YEAR FROM date)::int AS year,
-            EXTRACT(MONTH FROM date)::int AS month,
-            type::text AS type,
-            SUM(amount):: FLOAT AS total
-        FROM "Transaction"
-        WHERE
-            "userId" = ${userId}
-            AND "deletedAt" IS NULL
-            AND date >= ${startDate}
-            AND date < ${endDate}
-        GROUP BY
-            EXTRACT(YEAR FROM date),
-            EXTRACT(MONTH FROM date),
-            type
-        ORDER BY
-            year ASC, month ASC
+      SELECT
+        EXTRACT(YEAR FROM date)::int  AS year,
+        EXTRACT(MONTH FROM date)::int AS month,
+        type::text                    AS type,
+        SUM(amount)::float            AS total
+      FROM "Transaction"
+      WHERE
+        "userId"    = ${userId}
+        AND "deletedAt" IS NULL
+        AND date   >= ${startDate}
+        AND date    < ${endDate}
+      GROUP BY
+        EXTRACT(YEAR  FROM date),
+        EXTRACT(MONTH FROM date),
+        type
+      ORDER BY year, month
     `;
 
-    const normalized = rows.map(r => ({
-    ...r,
-        year:  Number(r.year),
-        month: Number(r.month),
-        total: Number(r.total)
+    const normalized = rows.map((r) => ({
+      ...r,
+      year: Number(r.year),
+      month: Number(r.month),
+      total: Number(r.total),
     }));
 
-    // Build the 6-month array, filling zeros for month with no data
     const months = [];
-    for (let i = 5;i >= 0; i--) {
-        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const month = date.getMonth() + 1;
-        const year = date.getFullYear();
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const month = date.getMonth() + 1;
+      const year = date.getFullYear();
 
-        // Find maching rows from the single query result
-        const incomeRow  = normalized.find(r => r.year === year && r.month === month && r.type === "INCOME");
-        const expenseRow = normalized.find(r => r.year === year && r.month === month && r.type === "EXPENSE");
+      const incomeRow = normalized.find(
+        (r) => r.year === year && r.month === month && r.type === "INCOME",
+      );
+      const expenseRow = normalized.find(
+        (r) => r.year === year && r.month === month && r.type === "EXPENSE",
+      );
 
-        const income = incomeRow?.total ?? 0;
-        const expense = expenseRow?.total ?? 0;
+      const income = incomeRow?.total ?? 0;
+      const expense = expenseRow?.total ?? 0;
 
-        months.push({
-            month,
-            year,
-            label: date.toLocaleString("default", { month: "short", year: "2-digit"}),
-            income,
-            expense,
-            net: income - expense
-        })
+      months.push({
+        month,
+        year,
+        label: date.toLocaleString("en-US", {
+          month: "short",
+          year: "2-digit",
+        }),
+        income,
+        expense,
+        net: income - expense,
+      });
     }
 
     return months;
-}
+  }
 
-const getTopMerchants = async (userId: string, month: number, year: number) => {
-    const startOfMonth = new Date(year, month - 1, 1);
-    const endOfMonth = new Date(year, month, 1);
+  async getTopMerchants(userId: string, month: number, year: number) {
+    const { start, end } = this.getMonthRange(month, year);
 
-    // groupBy does the aggregation
-    const result = await prisma.transaction.groupBy({
-        by: ["merchant"],
-        where: {
-            userId,
-            deletedAt: null,
-            type: "EXPENSE",
-            merchant: { not: null},
-            date: {
-                gte: startOfMonth,
-                lt: endOfMonth
-            }
-        },
-        _sum: {
-            amount: true
-        },
-        orderBy: {
-            _sum: {
-                amount: "desc"
-            }
-        },
-        take: 5
+    const result = await this.delegate.groupBy({
+      by: ["merchant"],
+      where: this.baseWhere(userId, {
+        type: "EXPENSE",
+        merchant: { not: null },
+        date: { gte: start, lt: end },
+      }),
+      _sum: { amount: true },
+      orderBy: { _sum: { amount: "desc" } },
+      take: 5,
     });
 
-    return result.map(r => ({
-        merchant: r.merchant!,
-        total: Number(r._sum.amount ?? 0)
+    return result.map((r) => ({
+      merchant: r.merchant!,
+      total: Number(r._sum.amount ?? 0),
     }));
+  }
 }
 
-export const AnalyticsRepository = {
-    getMonthlySummary,
-    getLastSixMonthsData,
-    getTopMerchants
-}
+export const analyticsRepository = new AnalyticsRepository();

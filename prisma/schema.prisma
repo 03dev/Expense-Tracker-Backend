@@ -65,6 +65,8 @@ model Category {
   transactions Transaction[]
   budgets      Budget[]
 
+  @@unique([id, userId])
+
   @@unique([userId, name])
   @@index([userId])
   @@index(parentId)
@@ -89,6 +91,8 @@ model Transaction {
   user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   category   Category        @relation(fields: [categoryId], references: [id])
 
+  @@unique([id, userId])
+
   @@index([userId])
   @@index([userId, date])
   @@index([userId, categoryId])
@@ -109,6 +113,8 @@ model Budget {
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   category   Category  @relation(fields: [categoryId], references: [id])
 
+  @@unique([id, userId])
+
   @@unique([userId, categoryId, month, year])
   @@index([userId])
   @@index([userId, month, year])
@@ -123,6 +129,8 @@ model Notification {
   createdAt DateTime @default(now())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([id, userId])
 
   @@index([userId, isRead])
   @@index([userId, createdAt])

@@ -3,11 +3,11 @@ import authMiddleware from "../middlewares/auth.middleware";
 import { NotificationController } from "../controllers/notification.controller";
 import { asyncHandler } from "../utils/asyncHandler";
 import { validate } from "../middlewares/validate.middleware";
-import { notificationIdSchema } from "../validators/notification.validator";
+import { notificationIdSchema, getNoficationSchema } from "../validators/notification.validator";
 
 const router = Router();
 
-router.get("/", authMiddleware, asyncHandler(NotificationController.getNotifications));
+router.get("/", authMiddleware, validate({query: getNoficationSchema}), asyncHandler(NotificationController.getNotifications));
 
 router.get("/unread-count", authMiddleware, asyncHandler(NotificationController.getUnreadCount));
 

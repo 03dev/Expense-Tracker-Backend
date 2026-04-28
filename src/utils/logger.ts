@@ -3,7 +3,11 @@ export const logger = {
         console.log(`[INFO] ${message} `, data || "");
     },
 
+    warn: ( message: string, data?: any ) => {
+        console.warn(`[WARN] ${message} `, data || "");
+    },
+
     error: ( message: string, error?: any) => {
-        console.log(`[Error] ${message} `, error || "");
+        console.error(`[ERROR] ${message} `, error || "");
     }
 };

@@ -14,6 +14,7 @@ const signUpController = async (req: AppRequest, res: Response) => {
         httpOnly: true,
         secure: env.NODE_ENV === "production",
         sameSite: "strict",
+        path: "/auth",
         maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
@@ -33,10 +34,11 @@ const loginController = async (req: AppRequest, res: Response) => {
         httpOnly: true,
         secure: env.NODE_ENV === "production",
         sameSite: "strict",
+        path: "/auth",
         maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
-    return res.status(201).json({
+    return res.status(200).json({
         success: true,
         user,
         message: "User login successfully",
@@ -52,13 +54,7 @@ const logoutController = async (req: AppRequest, res: Response) => {
     }
 
     await AuthServices.logoutService(token);
-    res.clearCookie("refreshToken", {
-        httpOnly: true,
-        secure: env.NODE_ENV === "production",
-        path: "/auth/refresh",
-        sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000
-    });
+    res.clearCookie("refreshToken", { path: "/auth" });
 
     return res.status(200).json({
         success: true,
@@ -75,13 +71,12 @@ const refreshTokenController = async (req: AppRequest, res: Response) => {
 
     const { accessToken, refreshToken } = await AuthServices.refreshTokenService(token);
 
-    res.clearCookie("refreshToken", {path: "/auth/refresh"});
     res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
         secure: env.NODE_ENV === "production",
         sameSite: "strict",
-        path: "/auth/refresh",
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        path: "/auth",
+        maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
     return res.status(200).json({

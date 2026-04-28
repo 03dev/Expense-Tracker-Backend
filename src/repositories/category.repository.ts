@@ -1,121 +1,106 @@
-import { prisma } from "../config/prisma"
+﻿import { prisma } from "../config/prisma";
+import { BaseRepository } from "./baseRepository";
+import {
+  CreateCategoryInput,
+  UpdateCategoryInput,
+} from "../validators/category.validator";
 
 const categorySelect = {
   id: true,
   name: true,
   icon: true,
   parentId: true,
-  userId: true
+  userId: true,
 } as const;
+class CategoryRepository extends BaseRepository<typeof prisma.category> {
+  constructor() {
+    super(prisma.category);
+  }
 
-const createCategory = async (userId: string, data: { name: string; parentId?: string; icon?: string }) => {
-  return prisma.category.create({
-    data: {
-      name: data.name,
-      userId,
-      parentId: data.parentId,
-      icon: data.icon
-    },
-    select: categorySelect
-  })
-}
-
-const getCategories = async (userId: string) => {
-  return prisma.category.findMany({
-    where: {
-      userId,
-      deletedAt: null
-    },
-    select: {
-      ...categorySelect,
-      _count: {
-        select: {
-          transactions: {
-            where: {
-              deletedAt: null  // don't count soft deleted transactions
-            }
-          }
-        }
-      }
-    },
-    orderBy: {
-      name: "asc"
-    }
-  });
-}
-
-const getCategoryById = async (uuid: string, userId: string) => {
-    return prisma.category.findFirst({
-      where: {
-        id: uuid,
+  async createCategory(userId: string, data: CreateCategoryInput) {
+    return this.delegate.create({
+      data: {
+        ...data,
         userId,
-        deletedAt: null // exclude soft deleted
       },
+      select: categorySelect,
+    });
+  }
+
+  async getCategories(userId: string) {
+    return this.delegate.findMany({
+      where: this.baseWhere(userId),
+      select: {
+        ...categorySelect,
+        _count: {
+          select: {
+            transactions: {
+              where: {
+                deletedAt: null, // don't count soft deleted transactions
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        name: "asc",
+      },
+    });
+  }
+
+  async getCategoryById(id: string, userId: string) {
+    return this.delegate.findFirst({
+      where: this.baseWhere(userId, { id }),
       select: {
         ...categorySelect,
         children: {
           where: {
-            deletedAt: null
+            deletedAt: null,
           },
-          select: categorySelect
-        }
-      }
-    })
+          select: categorySelect,
+        },
+      },
+    });
+  }
+
+  async updateCategory(id: string, userId: string, data: UpdateCategoryInput) {
+    return this.delegate.update({
+      where: {
+        id_userId: {
+          id,
+          userId,
+        },
+      },
+      data,
+      select: categorySelect,
+    });
+  }
+
+  async deleteCategory(id: string, userId: string) {
+    await this.softDelete(userId, id);
+    return { id };
+  }
+
+  async findDeletedCategoryByName(userId: string, name: string) {
+    return this.delegate.findFirst({
+      where: {
+        userId,
+        name,
+        deletedAt: { not: null },
+      },
+    });
+  }
+
+  async restoreCategory(id: string, userId: string, data: { name?: string; icon?: string; parentId?: string | null }) {
+    return this.delegate.update({
+      where: { id_userId: { id, userId } },
+      data: {
+        ...data,
+        deletedAt: null,
+      },
+      select: categorySelect,
+    });
+  }
 }
 
-const updateCategory = async (uuid: string, userId: string, data: {name?: string; icon?: string}) => {
-  return prisma.category.update({
-    where:{
-      id: uuid,
-      userId,
-      deletedAt: null // exculde soft deleted
-    },
-    data: {
-      ...(data.name && { name: data.name}),
-      ...(data.icon !== undefined && { icon: data.icon})
-    },
-    select: categorySelect
-  })
-}
-
-const deleteCategory = async (uuid: string, userId: string) => {
-  return prisma.category.update({
-    where:{
-      id: uuid,
-      userId
-    },
-    data: {
-      deletedAt: new Date()
-    }
-  })
-}
-
-const findCategoryByUserIdAndName = async (userId: string, name: string) => {
-  return prisma.category.findFirst({
-    where: {
-      userId,
-      name,
-      deletedAt: { not: null }
-    }
-  })
-}
-
-const restoreCategory = async (id: string, data: { name?: string; icon?: string }) => {
-  return prisma.category.update({
-    where: { id },
-    data: {
-      ...data,
-      deletedAt: null
-    }
-  })
-}
-
-export const CategoryRepository = {
-  createCategory,
-  getCategories,
-  getCategoryById,
-  updateCategory,
-  deleteCategory,
-  findCategoryByUserIdAndName,
-  restoreCategory
-}
+export const categoryRepository = new CategoryRepository();

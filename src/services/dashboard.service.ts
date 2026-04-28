@@ -1,21 +1,18 @@
-import { NotFoundError } from "../errors/NotFoundError";
-import { DashboardRespository } from "../repositories/dashboard.repository";
-import { UserRepository } from "../repositories/user.repository"
+import { dashboardRepository } from "../repositories/dashboard.repository";
 
-export const getDashboardDataService = async (userId: string, month: number, year: number) => {
-    const user = await UserRepository.findUserById(userId);
+const getDashboardDataService = async (userId: string, month: number, year: number) => {
+  const data = await dashboardRepository.getDashboardData(userId, month, year);
+  return {
+    month: data.month,
+    year: data.year,
+    totalBalance: data.net,
+    totalIncome: data.totalIncome,
+    totalExpense: data.totalExpense,
+    recentTransactions: data.recentTransactions,
+    topCategories: data.topCategories,
+  };
+};
 
-    if(!user) {
-        throw new NotFoundError("User not found");
-    }
-
-    const { income, expense, recentTransactions, topCategories } = await DashboardRespository.dashboardData(userId, month, year);
-
-    return {
-        totalBalance: income - expense,
-        income,
-        expense,
-        recentTransactions,
-        topCategories
-    }
-}
+export const DashboardService = {
+  getDashboardDataService,
+};

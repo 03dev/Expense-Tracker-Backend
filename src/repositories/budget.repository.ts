@@ -1,140 +1,115 @@
-import { prisma } from "../config/prisma"
-import { CreateBudgetInput, GetBudgetsInput, UpdateBudgetInput } from "../validators/budget.validator";
+import { prisma } from "../config/prisma";
+import {
+  CreateBudgetInput,
+  GetBudgetsInput,
+  UpdateBudgetInput,
+} from "../validators/budget.validator";
+import { BaseRepository } from "./baseRepository";
 
 const budgetSelect = {
-    id: true,
-    amount: true,
-    icon: true,
-    month: true,
-    year: true,
-    categoryId: true,
-    createdAt: true,
-    category: {
-        select: {
-            id: true,
-            name: true
-        }
-    }
+  id: true,
+  amount: true,
+  icon: true,
+  month: true,
+  year: true,
+  categoryId: true,
+  createdAt: true,
+  category: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
 } as const;
 
-const createBudget = async (userId: string, data: CreateBudgetInput) => {
-    return prisma.budget.create({
-        data: {
-            amount: data.amount,
-            month: data.month,
-            year: data.year,
-            categoryId: data.categoryId,
-            userId,
-            icon: data.icon
-        },
-        select: budgetSelect
-    });
-}
+class BudgetRepository extends BaseRepository<typeof prisma.budget> {
+  constructor() {
+    super(prisma.budget);
+  }
 
-const getBudgets = async (userId: string, filter: GetBudgetsInput) => {
-  const where = {
-    userId,
-    month: filter.month,
-    year: filter.year,
-    deletedAt: null
-  };
-
-  const [budgets, total] = await Promise.all([
-    prisma.budget.findMany({
-      where,
+  async createBudget(userId: string, data: CreateBudgetInput) {
+    return this.delegate.create({
+      data: {
+        ...data,
+        userId,
+      },
       select: budgetSelect,
-      orderBy: { createdAt: "asc" }
-    }),
-    prisma.budget.count({ where })
-  ]);
-
-  return { budgets, total };
-};
-
-const getBudgetById = async (id: string, userId: string) => {
-    return prisma.budget.findFirst({
-        where: {
-            id,
-            userId,
-            deletedAt: null
-        },
-        select: budgetSelect
     });
-}
+  }
 
-const updateBudget = async (id: string, userId: string, data: UpdateBudgetInput) => {
-    return prisma.budget.update({
-        where: {
-            id,
-            userId
-        },
-        data: {
-            ...(data.amount !== undefined && { amount: data.amount }),
-            ...(data.icon !== undefined && { icon: data.icon})
-        },
-        select: budgetSelect
+  async getBudgets(userId: string, filter: GetBudgetsInput) {
+    const budgets = await this.delegate.findMany({
+      where: this.baseWhere(userId, {
+        month: filter.month,
+        year: filter.year,
+      }),
+      select: budgetSelect,
+      orderBy: { createdAt: "asc" },
     });
-}
 
-const deleteBudget = async (id: string, userId: string) => {
-    await prisma.budget.update({
-        where: {
-            id,
-            userId
-        },
-        data: {
-            deletedAt: new Date()
-        }
+    return { budgets, total: budgets.length };
+  }
+
+  async getBudgetById(id: string, userId: string) {
+    return this.delegate.findFirst({
+      where: this.baseWhere(userId, { id }),
+      select: budgetSelect,
     });
-}
+  }
 
-const findExistingBudget = async (userId: string, categoryId: string, month: number, year: number) => {
-  return prisma.budget.findFirst({
-    where: {
-      userId,
-      categoryId,
-      month,
-      year,
-      deletedAt: null
-    },
-    select: {
+  async updateBudget(id: string, userId: string, data: UpdateBudgetInput) {
+    return this.delegate.update({
+      where: {
+        id_userId: {
+          id,
+          userId,
+        },
+      },
+      data,
+      select: budgetSelect,
+    });
+  }
+
+  async deleteBudget(id: string, userId: string) {
+    await this.softDelete(userId, id);
+    return { id };
+  }
+
+  async findExistingBudget(
+    userId: string,
+    categoryId: string,
+    month: number,
+    year: number,
+  ) {
+    return this.delegate.findFirst({
+      where: this.baseWhere(userId, { categoryId, month, year }),
+      select: {
         id: true,
-        amount: true
-    }
-  });
+        amount: true,
+      },
+    });
+  }
+
+  async findDeletedBudget(userId: string, data: CreateBudgetInput) {
+    return this.delegate.findFirst({
+      where: {
+        userId,
+        categoryId: data.categoryId,
+        month: data.month,
+        year: data.year,
+        deletedAt: { not: null },
+      },
+    });
+  }
+
+  async restoreBudget(id: string, userId: string, data: CreateBudgetInput) {
+    const { amount, icon, month, year, categoryId } = data;
+    return this.delegate.update({
+      where: { id_userId: { id, userId } },
+      data: { amount, icon, month, year, categoryId, deletedAt: null },
+      select: budgetSelect,
+    });
+  }
 }
 
-const findDeletedBudget = async (userId: string, data: CreateBudgetInput) => {
-  return prisma.budget.findFirst({
-    where: {
-      userId,
-      categoryId: data.categoryId,
-      month: data.month,
-      year: data.year,
-      deletedAt: { not: null }
-    }
-  });
-};
-
-const restoreBudget = async (id: string, data: CreateBudgetInput) => {
-  return prisma.budget.update({
-    where: { id },
-    data: {
-      amount: data.amount,  // ← explicitly list fields instead of spreading
-      icon: data.icon,
-      deletedAt: null
-    },
-    select: budgetSelect
-  });
-};
-
-export const BudgetRepository = {
-    createBudget,
-    getBudgets,
-    getBudgetById,
-    updateBudget,
-    deleteBudget,
-    findExistingBudget,
-    findDeletedBudget,
-    restoreBudget
-}
+export const budgetRepository = new BudgetRepository();

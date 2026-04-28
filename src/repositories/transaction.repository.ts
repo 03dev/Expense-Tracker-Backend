@@ -1,180 +1,137 @@
 // src/repositories/transaction.repository.ts
-import { Prisma, TransactionType } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prisma";
-import { TransactionQueryParams } from "../validators/transaction.validator";
+import {
+  TransactionQueryParams,
+  CreateTransactionInput,
+  UpdateTransactionInput,
+} from "../validators/transaction.validator";
+import { BaseRepository } from "./baseRepository";
 
-const createTransaction = async (data: {
-  amount: number;
-  type: TransactionType;
-  note?: string;
-  receiptUrl?: string;
-  merchant?: string;
-  location?: string;
-  isRecurring?: boolean;
-  tags?: string[];
-  date: Date;
-  userId: string;
-  categoryId: string;
-}) => {
-  return prisma.transaction.create({
-    data: {
-      amount: data.amount,
-      type: data.type,
-      note: data.note,
-      receiptUrl: data.receiptUrl,
-      merchant: data.merchant,
-      location: data.location,
-      isRecurring: data.isRecurring ?? false,
-      tags: data.tags ?? [],
-      date: data.date,
-      userId: data.userId,
-      categoryId: data.categoryId,
-    }
-  });
-}
-
-const getTransactions = async (userId: string, filters: TransactionQueryParams) => {
-  const tagsArray = filters.tags?.split(',').filter(Boolean) ?? [];
-
-  const where: Prisma.TransactionWhereInput = {
-    userId,
-    deletedAt: null,
-    ...(filters.type && { type: filters.type }),
-    ...(filters.categoryId && { categoryId: filters.categoryId }),
-    ...(filters.merchant && { merchant: { contains: filters.merchant, mode: 'insensitive' } }),
-    ...(filters.isRecurring !== undefined && { isRecurring: filters.isRecurring }),
-    ...(tagsArray.length > 0 && { tags: { hasSome: tagsArray } }),
-    ...(filters.startDate && { date: { gte: new Date(filters.startDate) } }),
-    ...(filters.endDate && { date: { lte: new Date(filters.endDate) } }),
-  };
-
-  const skip = (filters.page - 1) * filters.limit;
-
-  const [transactions, total] = await prisma.$transaction([
-    prisma.transaction.findMany({
-      where,
-      skip,
-      take: filters.limit,
-      orderBy: { date: filters.sortOrder },
-      select: {
-        id: true,
-        amount: true,
-        type: true,
-        date: true,
-        note: true,
-        merchant: true,
-        location: true,
-        isRecurring: true,
-        tags: true,
-        categoryId: true,
-        category: {
-          select: {
-            id: true,
-            name: true
-          }
-        }
-      }
-    }),
-    prisma.transaction.count({ where }),
-  ]);
-
-  return {
-    transactions,
-    total,
-    page: filters.page,
-    limit: filters.limit,
-    totalPages: Math.ceil(total / filters.limit)
-  };
-};
-
-const getTransactionById = async (transactionId: string, userId: string) => {
-  return prisma.transaction.findFirst({
-    where: {
-      id: transactionId,
-      userId,
-      deletedAt: null
-    },
+const transactionSelect = {
+  id: true,
+  amount: true,
+  type: true,
+  date: true,
+  note: true,
+  receiptUrl: true,
+  merchant: true,
+  location: true,
+  isRecurring: true,
+  tags: true,
+  categoryId: true,
+  category: {
     select: {
       id: true,
-      amount: true,
-      type: true,
-      date: true,
-      note: true,
-      receiptUrl: true,
-      merchant: true,
-      location: true,
-      isRecurring: true,
-      tags: true,
-      createdAt: true,
-      category: {
-        select: {
-          id: true,
-          name: true
-        }
-      }
-    }
-  })
+      name: true,
+    },
+  },
+} as const;
+
+class TransactionRepository extends BaseRepository<typeof prisma.transaction> {
+  constructor() {
+    super(prisma.transaction);
+  }
+
+  async createTransaction(userId: string, data: CreateTransactionInput) {
+    return this.delegate.create({
+      data: {
+        ...data,
+        userId,
+      },
+      select: transactionSelect,
+    });
+  }
+
+  async getTransactions(userId: string, filters: TransactionQueryParams) {
+    const tagsArray = filters.tags?.split(",").filter(Boolean) ?? [];
+
+    const where: Prisma.TransactionWhereInput = {
+      ...this.baseWhere(userId),
+      ...(filters.type && { type: filters.type }),
+      ...(filters.categoryId && { categoryId: filters.categoryId }),
+      ...(filters.merchant && {
+        merchant: { contains: filters.merchant, mode: "insensitive" },
+      }),
+      ...(filters.isRecurring !== undefined && {
+        isRecurring: filters.isRecurring,
+      }),
+      ...(tagsArray.length > 0 && { tags: { hasSome: tagsArray } }),
+      ...((filters.startDate || filters.endDate) && {
+        date: {
+          ...(filters.startDate && { gte: new Date(filters.startDate) }),
+          ...(filters.endDate && { lte: new Date(filters.endDate) }),
+        },
+      }),
+    };
+
+    const skip = (filters.page - 1) * filters.limit;
+
+    const [transactions, total] = await Promise.all([
+      this.delegate.findMany({
+        where,
+        skip,
+        take: filters.limit,
+        orderBy: { date: filters.sortOrder },
+        select: transactionSelect,
+      }),
+      this.delegate.count({ where }),
+    ]);
+
+    return {
+      transactions,
+      total,
+      page: filters.page,
+      limit: filters.limit,
+      totalPages: Math.ceil(total / filters.limit),
+    };
+  }
+
+  async getTransactionById(transactionId: string, userId: string) {
+    return this.delegate.findFirst({
+      where: this.baseWhere(userId, { id: transactionId }),
+      select: transactionSelect,
+    });
+  }
+
+  async updateTransaction(
+    id: string,
+    userId: string,
+    data: UpdateTransactionInput,
+  ) {
+    return this.delegate.update({
+      where: {
+        id_userId: {
+          id,
+          userId,
+        },
+      },
+      data,
+      select: transactionSelect,
+    });
+  }
+
+  async deleteTransaction(id: string, userId: string) {
+    await this.softDelete(userId, id);
+    return { id };
+  }
+
+  async sumExpensesByCategory(
+    userId: string,
+    categoryId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
+    const result = await this.delegate.aggregate({
+      _sum: { amount: true },
+      where: this.baseWhere(userId, {
+        type: "EXPENSE",
+        categoryId,
+        date: { gte: startDate, lt: endDate },
+      }),
+    });
+    return Number(result._sum.amount ?? 0);
+  }
 }
 
-const updateTransaction = async (data: {
-  id: string;
-  userId: string;
-  amount?: number;
-  type?: TransactionType;
-  note?: string;
-  receiptUrl?: string;
-  merchant?: string;
-  location?: string;
-  isRecurring?: boolean;
-  tags?: string[];
-  date?: Date;
-  categoryId?: string;
-}) => {
-  return prisma.transaction.update({
-    where: {
-      id: data.id,
-      userId: data.userId,
-    },
-    data: {
-      amount: data.amount,
-      type: data.type,
-      note: data.note,
-      receiptUrl: data.receiptUrl,
-      merchant: data.merchant,
-      location: data.location,
-      isRecurring: data.isRecurring,
-      tags: data.tags,
-      date: data.date,
-      categoryId: data.categoryId,
-    },
-    select: {
-      id: true,
-      amount: true,
-      type: true,
-      date: true,
-      note: true,
-      merchant: true,
-      categoryId: true
-    }
-  });
-}
-
-const deleteTransaction = async (data: { id: string; userId: string }) => {
-  return prisma.transaction.update({
-    where: {
-      id: data.id,
-      userId: data.userId,
-    },
-    data: {
-      deletedAt: new Date()
-    }
-  });
-}
-
-export const TransactionRepository = {
-  createTransaction,
-  getTransactions,
-  getTransactionById,
-  updateTransaction,
-  deleteTransaction
-}
+export const transactionRepository = new TransactionRepository();

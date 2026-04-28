@@ -1,83 +1,54 @@
 import { BadRequestError } from "../errors/BadRequestError";
 import { NotFoundError } from "../errors/NotFoundError";
-import { BudgetRepository } from "../repositories/budget.repository";
-import { CategoryRepository } from "../repositories/category.repository";
+import { budgetRepository } from "../repositories/budget.repository";
+import { categoryRepository } from "../repositories/category.repository";
 import {
   CreateBudgetInput,
   GetBudgetsInput,
   UpdateBudgetInput,
 } from "../validators/budget.validator";
-const createBudgetService = async (userId: string, data: CreateBudgetInput) => {
-  // 1. Check category exists
-  const category = await CategoryRepository.getCategoryById(
-    data.categoryId,
-    userId,
-  );
-  if (!category) {
-    throw new NotFoundError("Category not found");
-  }
 
-  // 2. Check if active budget already exists → block it
-  const existingBudget = await BudgetRepository.findExistingBudget(
+const createBudgetService = async (userId: string, data: CreateBudgetInput) => {
+  const category = await categoryRepository.getCategoryById(data.categoryId, userId);
+  if (!category) throw new NotFoundError("Category not found");
+
+  const existingBudget = await budgetRepository.findExistingBudget(
     userId,
     data.categoryId,
     data.month,
     data.year,
   );
+  if (existingBudget) throw new BadRequestError("Budget already exists for this category and month");
 
-  if (existingBudget) {
-    throw new BadRequestError("Budget already exists");
-  }
-
-  // 3. Check if soft deleted budget exists → restore it
-  const deletedBudget = await BudgetRepository.findDeletedBudget(userId, data);
-  
+  // Restore soft-deleted budget instead of creating a duplicate
+  const deletedBudget = await budgetRepository.findDeletedBudget(userId, data);
   if (deletedBudget) {
-    return BudgetRepository.restoreBudget(deletedBudget.id, data);
+    return budgetRepository.restoreBudget(deletedBudget.id, userId, data);
   }
 
-  // 4. Nothing exists → create fresh
-  return BudgetRepository.createBudget(userId, data);
+  return budgetRepository.createBudget(userId, data);
 };
 
 const getBudgetsService = async (userId: string, filter: GetBudgetsInput) => {
-  return BudgetRepository.getBudgets(userId, filter);
+  return budgetRepository.getBudgets(userId, filter);
 };
 
 const getBudgetByIdService = async (id: string, userId: string) => {
-  const budget = await BudgetRepository.getBudgetById(id, userId);
-
-  if (!budget) {
-    throw new NotFoundError("Budget not found");
-  }
-
+  const budget = await budgetRepository.getBudgetById(id, userId);
+  if (!budget) throw new NotFoundError("Budget not found");
   return budget;
 };
 
-const updateBudgetService = async (
-  id: string,
-  userId: string,
-  data: UpdateBudgetInput,
-) => {
-  const budget = await BudgetRepository.getBudgetById(id, userId);
-
-  if (!budget) {
-    throw new NotFoundError("Budget not found");
-  }
-
-  const newBudget = await BudgetRepository.updateBudget(id, userId, data);
-
-  return newBudget;
+const updateBudgetService = async (id: string, userId: string, data: UpdateBudgetInput) => {
+  const budget = await budgetRepository.getBudgetById(id, userId);
+  if (!budget) throw new NotFoundError("Budget not found");
+  return budgetRepository.updateBudget(id, userId, data);
 };
 
 const deleteBudgetService = async (id: string, userId: string) => {
-  const budget = await BudgetRepository.getBudgetById(id, userId);
-
-  if (!budget) {
-    throw new NotFoundError("Budget not found");
-  }
-
-  await BudgetRepository.deleteBudget(id, userId);
+  const budget = await budgetRepository.getBudgetById(id, userId);
+  if (!budget) throw new NotFoundError("Budget not found");
+  await budgetRepository.deleteBudget(id, userId);
 };
 
 export const BudgetService = {
