@@ -28,6 +28,7 @@ class AuthRepository {
         name: true,
         email: true,
         password: true,
+        avatarUrl: true,
       },
     });
   }

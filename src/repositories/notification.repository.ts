@@ -24,7 +24,7 @@ class NotificationRepository {
 
   async getNotifications(userId: string, filter: GetNotificationsInput) {
     const where = { userId };
-    const [notifications, total] = await Promise.all([
+    const [notifications, total, unreadCount] = await Promise.all([
       prisma.notification.findMany({
         where,
         orderBy: { createdAt: "desc" },
@@ -33,10 +33,12 @@ class NotificationRepository {
         select: notificationSelect,
       }),
       prisma.notification.count({ where }),
+      prisma.notification.count({ where: { ...where, isRead: false}}),
     ]);
 
     return {
       notifications,
+      unreadCount,
       total,
       page: filter.page,
       limit: filter.limit,

@@ -38,8 +38,6 @@ const loginService = async (data: { email: string; password: string }) => {
   const isPasswordValid = await TokenUtils.compareFunction(data.password, user.password);
   if (!isPasswordValid) throw new UnauthorizedError("Invalid email or password");
 
-  await refreshTokenRepository.deleteAllRefreshTokens(user.id);
-
   const tokenId = createId();
   const accessToken = TokenUtils.generateAccessToken(user.id);
   const refreshToken = TokenUtils.generateRefreshToken(user.id, tokenId);
@@ -48,7 +46,7 @@ const loginService = async (data: { email: string; password: string }) => {
 
   logger.info(`User logged in: ${user.email}`);
   return {
-    user: { id: user.id, name: user.name, email: user.email },
+    user: { id: user.id, name: user.name, email: user.email, avatarUrl: user.avatarUrl },
     accessToken,
     refreshToken,
   };

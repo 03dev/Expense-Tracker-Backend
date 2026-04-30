@@ -72,7 +72,7 @@ class TransactionRepository extends BaseRepository<typeof prisma.transaction> {
         where,
         skip,
         take: filters.limit,
-        orderBy: { date: filters.sortOrder },
+        orderBy: { createdAt: filters.sortOrder },
         select: transactionSelect,
       }),
       this.delegate.count({ where }),

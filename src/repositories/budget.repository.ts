@@ -38,16 +38,46 @@ class BudgetRepository extends BaseRepository<typeof prisma.budget> {
   }
 
   async getBudgets(userId: string, filter: GetBudgetsInput) {
-    const budgets = await this.delegate.findMany({
-      where: this.baseWhere(userId, {
-        month: filter.month,
-        year: filter.year,
+    const dateFilter =
+      filter.month !== undefined && filter.year !== undefined
+        ? { gte: new Date(filter.year, filter.month - 1, 1), lt: new Date(filter.year, filter.month, 1) }
+        : undefined;
+
+    const [budgets, spentByCategory] = await Promise.all([
+      this.delegate.findMany({
+        where: this.baseWhere(userId, {
+          month: filter.month,
+          year: filter.year,
+        }),
+        select: budgetSelect,
+        orderBy: { createdAt: "asc" },
       }),
-      select: budgetSelect,
-      orderBy: { createdAt: "asc" },
+      prisma.transaction.groupBy({
+        by: ["categoryId"],
+        where: {
+          userId,
+          type: "EXPENSE",
+          deletedAt: null,
+          ...(dateFilter && { date: dateFilter }),
+        },
+        _sum: { amount: true },
+      }),
+    ]);
+
+    const spentMap = new Map(
+      spentByCategory.map((s) => [s.categoryId, Number(s._sum.amount ?? 0)])
+    );
+
+    const enriched = budgets.map((budget) => {
+      const spent = spentMap.get(budget.categoryId) ?? 0;
+      return {
+        ...budget,
+        spent,
+        remaining: Number(budget.amount) - spent,
+      };
     });
 
-    return { budgets, total: budgets.length };
+    return { budgets: enriched, total: enriched.length };
   }
 
   async getBudgetById(id: string, userId: string) {

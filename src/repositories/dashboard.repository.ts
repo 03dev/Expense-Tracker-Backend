@@ -25,7 +25,7 @@ class DashboardRepository extends BaseRepository<typeof prisma.transaction> {
       // Recent 5 transactions regardless of month scope — intentional
       this.delegate.findMany({
         where: this.baseWhere(userId),
-        orderBy: { date: "desc" },
+        orderBy: { createdAt: "desc" },
         take: 5,
         select: {
           id: true,

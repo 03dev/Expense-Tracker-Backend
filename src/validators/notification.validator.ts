@@ -8,10 +8,10 @@ export const notificationIdSchema = z.object({
 
 export const getNoficationSchema = z.object({
     page: z
-            .coerce
-            .number()
-            .min(1)
-            .default(1),
+        .coerce
+        .number()
+        .min(1)
+        .default(1),
     limit: z
         .coerce
         .number()
