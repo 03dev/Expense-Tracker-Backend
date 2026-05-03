@@ -111,6 +111,14 @@ class TransactionRepository extends BaseRepository<typeof prisma.transaction> {
     });
   }
 
+  async clearReceiptUrl(id: string, userId: string) {
+    return this.delegate.update({
+      where: { id_userId: { id, userId } },
+      data: { receiptUrl: null },
+      select: transactionSelect,
+    });
+  }
+
   async deleteTransaction(id: string, userId: string) {
     await this.softDelete(userId, id);
     return { id };

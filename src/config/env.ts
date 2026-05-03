@@ -1,4 +1,7 @@
 import { z } from "zod";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const envSchema = z.object({
   DATABASE_URL: z.string().url("DATABASE_URL must be a valid URL"),
@@ -45,6 +48,11 @@ const envSchema = z.object({
   REDIS_PASSWORD: z
     .string()
     .optional(),  
+
+  // Resend
+  RESEND_API_KEY: z
+    .string()
+    .min(1, "Resend API key is required")
 }); 
 
 const parsed = envSchema.safeParse(process.env);

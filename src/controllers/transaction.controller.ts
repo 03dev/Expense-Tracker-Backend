@@ -7,7 +7,7 @@ import { TransactionService } from "../services/transaction.service"
 
 const createTransaction = async (req: AuthenticatedRequest, res: Response) => {
     const body = getBody<CreateTransactionInput>(req);
-    const transaction = await TransactionService.createTransactionService(req.user.id, body);
+    const transaction = await TransactionService.createTransactionService(req.user.id, body, req.file?.buffer);
 
     return res.status(201).json({
         success: true,
@@ -60,10 +60,21 @@ const deleteTransaction = async (req: AuthenticatedRequest, res: Response) => {
     });
 }
 
+const deleteReceipt = async (req: AuthenticatedRequest, res: Response) => {
+    const param = getParams<TransactionIdInput>(req);
+    const transaction = await TransactionService.deleteReceiptService(param.id, req.user.id);
+    return res.status(200).json({
+        success: true,
+        message: "Receipt deleted successfully",
+        data: transaction
+    });
+}
+
 export const TransactionController = {
     createTransaction,
     getTransactions,
     getTransactionById,
     updateTransaction,
-    deleteTransaction
+    deleteTransaction,
+    deleteReceipt,
 }

@@ -18,6 +18,9 @@ class UserRepository {
         name: true,
         email: true,
         password: true,
+        avatarUrl: true,
+        isEmailVerified: true,
+        isTwoFactorEnabled: true,
       },
     });
   }

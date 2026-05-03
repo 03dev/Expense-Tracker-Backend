@@ -25,6 +25,11 @@ enum NotificationType {
   BUDGET_EXCEEDED
 }
 
+enum VerificationType {
+  EMAIL_VERIFICATION
+  TWO_FACTOR
+}
+
 model User {
   id            String         @id @default(uuid())
   name          String
@@ -38,6 +43,24 @@ model User {
   budgets       Budget[]
   refreshTokens RefreshToken[]
   notifications Notification[]
+  verificationCodes VerificationCode[]
+
+  isEmailVerified Boolean @default(false)
+  isTwoFactorEnabled Boolean @default(false)
+}
+
+model VerificationCode {
+  id        String           @id @default(uuid())
+  userId    String
+  code      String
+  type      VerificationType
+  expiresAt DateTime
+  createdAt DateTime         @default(now())
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, type])
 }
 
 model RefreshToken {

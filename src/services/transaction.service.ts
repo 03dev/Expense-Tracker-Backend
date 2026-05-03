@@ -1,3 +1,4 @@
+import { BadRequestError } from "../errors/BadRequestError";
 import { NotFoundError } from "../errors/NotFoundError";
 import { categoryRepository } from "../repositories/category.repository";
 import { notificationRepository } from "../repositories/notification.repository";
@@ -10,12 +11,21 @@ import {
   UpdateTransactionInput,
 } from "../validators/transaction.validator";
 import { logger } from "../utils/logger";
+import { deleteImage, uploadImage } from "../utils/cloudinary.utils";
 
-const createTransactionService = async (userId: string, data: CreateTransactionInput) => {
+const createTransactionService = async (userId: string, data: CreateTransactionInput, receiptBuffer?: Buffer) => {
   const category = await categoryRepository.getCategoryById(data.categoryId, userId);
   if (!category) throw new NotFoundError("Category not found");
 
-  const transaction = await transactionRepository.createTransaction(userId, data);
+  let receiptUrl: string | undefined;
+  if (receiptBuffer) {
+    receiptUrl = await uploadImage(receiptBuffer, "receipts", undefined, [{ quality: "auto" }]);
+  }
+
+  const transaction = await transactionRepository.createTransaction(userId, {
+    ...data,
+    ...(receiptUrl && { receiptUrl }),
+  });
 
   await notificationRepository.createNotification(userId, {
     title: "Transaction Added",
@@ -125,10 +135,20 @@ const deleteTransactionService = async (id: string, userId: string) => {
   logger.info(`Transaction deleted`, { userId, transactionId: id });
 };
 
+const deleteReceiptService = async (transactionId: string, userId: string) => {
+  const transaction = await transactionRepository.getTransactionById(transactionId, userId);
+  if (!transaction) throw new NotFoundError("Transaction not found");
+  if (!transaction.receiptUrl) throw new BadRequestError("No receipt to delete");
+
+  await deleteImage(transaction.receiptUrl);
+  return transactionRepository.clearReceiptUrl(transactionId, userId);
+};
+
 export const TransactionService = {
   createTransactionService,
   getTransactionsService,
   getTransactionByIdService,
   updateTransactionService,
   deleteTransactionService,
+  deleteReceiptService,
 };

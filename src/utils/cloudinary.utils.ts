@@ -1,10 +1,11 @@
 import cloudinary from "../config/cloudinary"
 import { logger } from "./logger";
 
-export const  uploadImage = (
+export const uploadImage = (
     buffer: Buffer,
     folder: string,
-    publicId?: string
+    publicId?: string,
+    transformations?: object[]
 ): Promise<string> => {
     return new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
@@ -12,13 +13,9 @@ export const  uploadImage = (
                 folder,
                 public_id: publicId,
                 overwrite: true,
-                transformation: [
-                    {
-                        width: 500, height: 500, crop: "fill", // auto resize
-                    },
-                    {
-                        quality: "auto", // auto optimize quality
-                    },
+                transformation: transformations ?? [
+                    { width: 500, height: 500, crop: "fill" },
+                    { quality: "auto" },
                 ],
             },
             (error, result) => {
