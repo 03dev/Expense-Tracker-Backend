@@ -17,7 +17,23 @@ const registerService = async (data: {
   password: string;
 }) => {
   const existingUser = await authRepository.findUserByEmail(data.email);
-  if (existingUser) throw new BadRequestError("Email already in use");
+  if (existingUser) {
+    if (existingUser.isEmailVerified) throw new BadRequestError("Email already in use");
+
+    // Unverified user retrying registration — resend a fresh code
+    const code = generateCode();
+    await verificationRepository.createVerificationCode(existingUser.id, code, VerificationType.EMAIL_VERIFICATION);
+    try {
+      await sendVerificationEmail(data.email, code);
+    } catch (err) {
+      logger.error(`Failed to send verification email: ${err}`);
+    }
+    logger.info(`Resent verification code to existing unverified user: ${existingUser.email}`);
+    return {
+      user: { id: existingUser.id, name: existingUser.name, email: existingUser.email },
+      message: "Verification code sent to your email",
+    };
+  }
 
   const hashedPassword = await TokenUtils.hashedFunction(data.password);
   const user = await authRepository.createUser({
@@ -40,7 +56,7 @@ const registerService = async (data: {
 }
 
   logger.info(`New user registered: ${user.email}`);
-  return { user: user.id, message: "Verification code sent to your email" };
+  return { user, message: "Verification code sent to your email" };
 };
 
 const verifyEmailService = async (userId: string, code: string) => {
@@ -73,10 +89,10 @@ const loginService = async (data: { email: string; password: string }) => {
   const user = await authRepository.findUserByEmail(data.email);
   if (!user) throw new UnauthorizedError("Invalid email or password");
 
+  if (!user.isEmailVerified) throw new UnauthorizedError("Please verify your email first");
+
   const isPasswordValid = await TokenUtils.compareFunction(data.password, user.password);
   if (!isPasswordValid) throw new UnauthorizedError("Invalid email or password");
-
-  if (!user.isEmailVerified) throw new UnauthorizedError("Please verify your email first");
 
   // If 2FA is enabled
   if (user.isTwoFactorEnabled) {
@@ -86,7 +102,11 @@ const loginService = async (data: { email: string; password: string }) => {
       code,
       VerificationType.TWO_FACTOR
     );
-    await sendTwoFactorEmail(user.email, code);
+    try {
+      await sendTwoFactorEmail(user.email, code);
+    } catch (err) {
+      logger.error(`Failed to send two-factor email: ${err}`);
+    }
     return { twoFactorRequired: true, userId: user.id };
   }
 

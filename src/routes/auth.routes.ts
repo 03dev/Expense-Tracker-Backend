@@ -1,6 +1,6 @@
 ﻿import { Router } from "express";
 import { validate } from "../middlewares/validate.middleware";
-import { loginSchema, registerSchema } from "../validators/auth.validator";
+import { loginSchema, registerSchema, resendVerificationSchema, verifyEmailSchema, verifyTwoFactorSchema } from "../validators/auth.validator";
 import { AuthController } from "../controllers/auth.controller";
 import {
   authRateLimit,
@@ -15,27 +15,29 @@ router.post(
   "/signup",
   authRateLimit,
   validate({ body: registerSchema }),
-  AuthController.signUpController,
+  asyncHandler(AuthController.signUpController),
 );
 router.post(
   "/verify-email",
   authRateLimit,
-  AuthController.verifyEmailController,
+  validate({ body: verifyEmailSchema }),
+  asyncHandler(AuthController.verifyEmailController),
 );
 router.post(
   "/verify-two-factor",
   authRateLimit,
-  AuthController.verifyTwoFactorController,
+  validate({ body: verifyTwoFactorSchema }),
+  asyncHandler(AuthController.verifyTwoFactorController),
 );
 router.post(
   "/login",
   authRateLimit,
   validate({ body: loginSchema }),
-  AuthController.loginController,
+  asyncHandler(AuthController.loginController),
 );
-router.post('/resend-verification', authRateLimit, AuthController.resendVerificationCodeController);
+router.post('/resend-verification', authRateLimit, validate({ body: resendVerificationSchema }), asyncHandler(AuthController.resendVerificationCodeController));
 router.patch("/two-factor", authMiddleware, asyncHandler(AuthController.toggleTwoFactorController));
-router.post("/logout", tokenRateLimit, AuthController.logoutController);
-router.post("/refresh", tokenRateLimit, AuthController.refreshTokenController);
+router.post("/logout", tokenRateLimit, asyncHandler(AuthController.logoutController));
+router.post("/refresh", tokenRateLimit, asyncHandler(AuthController.refreshTokenController));
 
 export default router;
