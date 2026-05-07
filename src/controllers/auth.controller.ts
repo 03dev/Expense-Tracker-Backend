@@ -11,7 +11,7 @@ const signUpController = async (req: AppRequest, res: Response) => {
   const { user, message } = await AuthServices.registerService(body);
   return res.status(201).json({
     success: true,
-    userId: user.id,
+    user,
     message,
   });
 };

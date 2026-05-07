@@ -40,7 +40,7 @@ const registerService = async (data: {
 }
 
   logger.info(`New user registered: ${user.email}`);
-  return { user, message: "Verification code sent to your email" };
+  return { user: user.id, message: "Verification code sent to your email" };
 };
 
 const verifyEmailService = async (userId: string, code: string) => {
