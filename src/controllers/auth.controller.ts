@@ -31,6 +31,7 @@ const verifyEmailController = async (req: AppRequest, res: Response) => {
     user,
     message: "Email verified successfully",
     accessToken,
+    refreshToken,
   });
 };
 
@@ -49,6 +50,7 @@ const verifyTwoFactorController = async (req: AppRequest, res: Response) => {
     user,
     message: "Two factor verified successfully",
     accessToken,
+    refreshToken,
   });
 };
 
@@ -79,6 +81,7 @@ const loginController = async (req: AppRequest, res: Response) => {
     user,
     message: "User login successfully",
     accessToken,
+    refreshToken,
   });
 };
 
@@ -104,7 +107,7 @@ const refreshTokenController = async (req: AppRequest, res: Response) => {
     path: "/auth/refresh",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
-  return res.status(200).json({ accessToken });
+  return res.status(200).json({ accessToken, refreshToken });
 };
 
 const toggleTwoFactorController = async (req: AppRequest, res: Response) => {
