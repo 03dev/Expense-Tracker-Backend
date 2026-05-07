@@ -8,10 +8,10 @@ import { getBody } from "../utils/getValidated";
 
 const signUpController = async (req: AppRequest, res: Response) => {
   const body = getBody<RegisterInput>(req);
-  const { user, message } = await AuthServices.registerService(body);
+  const { userId, message } = await AuthServices.registerService(body);
   return res.status(201).json({
     success: true,
-    user,
+    userId,
     message,
   });
 };

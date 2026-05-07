@@ -17,10 +17,10 @@ const registerService = async (data: {
   password: string;
 }) => {
   const existingUser = await authRepository.findUserByEmail(data.email);
+
   if (existingUser) {
     if (existingUser.isEmailVerified) throw new BadRequestError("Email already in use");
 
-    // Unverified user retrying registration — resend a fresh code
     const code = generateCode();
     await verificationRepository.createVerificationCode(existingUser.id, code, VerificationType.EMAIL_VERIFICATION);
     try {
@@ -29,10 +29,7 @@ const registerService = async (data: {
       logger.error(`Failed to send verification email: ${err}`);
     }
     logger.info(`Resent verification code to existing unverified user: ${existingUser.email}`);
-    return {
-      user: { id: existingUser.id, name: existingUser.name, email: existingUser.email },
-      message: "Verification code sent to your email",
-    };
+    return { userId: existingUser.id, message: "Verification code sent to your email" };
   }
 
   const hashedPassword = await TokenUtils.hashedFunction(data.password);
@@ -42,22 +39,18 @@ const registerService = async (data: {
     hashedPassword,
   });
 
-  // Generate and send verification code
   const code = generateCode();
-  await verificationRepository.createVerificationCode(
-    user.id,
-    code,
-    VerificationType.EMAIL_VERIFICATION
-  );
+  await verificationRepository.createVerificationCode(user.id, code, VerificationType.EMAIL_VERIFICATION);
   try {
-  await sendVerificationEmail(data.email, code);
-} catch (err) {
-  logger.error(`Failed to send verification email: ${err}`);
-}
+    await sendVerificationEmail(data.email, code);
+  } catch (err) {
+    logger.error(`Failed to send verification email: ${err}`);
+  }
 
   logger.info(`New user registered: ${user.email}`);
-  return { user, message: "Verification code sent to your email" };
+  return { userId: user.id, message: "Verification code sent to your email" };
 };
+
 
 const verifyEmailService = async (userId: string, code: string) => {
   const user = await authRepository.findUserById(userId);
