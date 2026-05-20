@@ -3,6 +3,7 @@ import { AuthenticatedRequest } from "../types/request.types"
 import { getBody, getParams, getQuery } from "../utils/getValidated"
 import { CreateTransactionInput, TransactionIdInput, TransactionQueryParams, UpdateTransactionInput } from "../validators/transaction.validator"
 import { TransactionService } from "../services/transaction.service"
+import { BadRequestError } from "../errors/BadRequestError"
 
 
 const createTransaction = async (req: AuthenticatedRequest, res: Response) => {
@@ -70,6 +71,26 @@ const deleteReceipt = async (req: AuthenticatedRequest, res: Response) => {
     });
 }
 
+const parseMessageAndSave = async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.user.id;
+  const { message } = req.body;
+
+  if (!message) {
+    throw new BadRequestError("Message is required");
+  }
+
+  const transaction = await TransactionService.parseMessageAndSaveService(
+    userId,
+    message
+  );
+
+  res.status(201).json({
+    success: true,
+    message: "Transaction saved from message",
+    data: transaction,
+  });
+};
+
 export const TransactionController = {
     createTransaction,
     getTransactions,
@@ -77,4 +98,5 @@ export const TransactionController = {
     updateTransaction,
     deleteTransaction,
     deleteReceipt,
+    parseMessageAndSave,
 }

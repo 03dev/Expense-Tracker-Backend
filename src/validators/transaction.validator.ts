@@ -64,6 +64,11 @@ export const transactionIdSchema = z.object({
   id: z.string().uuid("Invalid transaction ID"),
 });
 
+export const parseMessageSchema = z.object({
+  message: z.string().min(1, "Message is required").max(500, "Message too long"),
+});
+
+export type ParseMessageInput = z.infer<typeof parseMessageSchema>;
 export type CreateTransactionInput = z.infer<typeof createTransactionSchema>;
 export type UpdateTransactionInput = z.infer<typeof updateTransactionSchema>;
 export type TransactionQueryParams = z.infer<typeof transactionQuerySchema>;

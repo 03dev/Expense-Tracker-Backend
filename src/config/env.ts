@@ -25,6 +25,11 @@ const envSchema = z.object({
     .regex(/^\d+[smhd]$/, "Invalid format")
     .default("7d"),
 
+  // Gemini
+  GEMINI_API_KEY: z
+    .string()
+    .min(1, "Gemini API key is required"),
+
   // Cloudinary
   CLOUDINARY_CLOUD_NAME: z
     .string()

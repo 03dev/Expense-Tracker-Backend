@@ -12,6 +12,8 @@ import {
 } from "../validators/transaction.validator";
 import { logger } from "../utils/logger";
 import { deleteImage, uploadImage } from "../utils/cloudinary.utils";
+import { parseTransactionMessage } from "./messageParser.service";
+import { matchCategory } from "./categoryMatcher.service";
 
 const createTransactionService = async (userId: string, data: CreateTransactionInput, receiptBuffer?: Buffer) => {
   const category = await categoryRepository.getCategoryById(data.categoryId, userId);
@@ -144,6 +146,38 @@ const deleteReceiptService = async (transactionId: string, userId: string) => {
   return transactionRepository.clearReceiptUrl(transactionId, userId);
 };
 
+const parseMessageAndSaveService = async (
+  userId: string,
+  message: string
+) => {
+  // Step 1 — parse message with Gemini
+  const parsed = await parseTransactionMessage(message);
+
+  // Step 2 — match category to real id
+  const categoryId = await matchCategory(userId, parsed.suggestedCategory);
+
+  // Step 3 — save transaction
+  const transaction = await transactionRepository.createTransaction(userId, {
+  amount: parsed.amount,
+  type: parsed.type,
+  merchant: parsed.merchant ?? undefined,
+  date: new Date(parsed.date).toISOString(),  // ← fix here only
+  note: parsed.note,
+  categoryId,
+  isRecurring: false,
+  tags: [],
+});
+
+  // Step 4 — create notification
+  await notificationRepository.createNotification(userId, {
+    title: "Transaction Added",
+    message: `${parsed.type === "INCOME" ? "💰" : "💸"} ${parsed.type} of ₹${parsed.amount}${parsed.merchant ? ` at ${parsed.merchant}` : ""} recorded`,
+    type: NotificationType.TRANSACTION_CREATED,
+  });
+
+  return transaction;
+};
+
 export const TransactionService = {
   createTransactionService,
   getTransactionsService,
@@ -151,4 +185,5 @@ export const TransactionService = {
   updateTransactionService,
   deleteTransactionService,
   deleteReceiptService,
+  parseMessageAndSaveService,
 };

@@ -111,7 +111,7 @@ const loginService = async (data: { email: string; password: string }) => {
 
   logger.info(`User logged in: ${user.email}`);
   return {
-    user: { id: user.id, name: user.name, email: user.email, avatarUrl: user.avatarUrl },
+    user: { id: user.id, name: user.name, email: user.email, isTwoFactorEnabled: user.isTwoFactorEnabled, avatarUrl: user.avatarUrl },
     accessToken,
     refreshToken,
   };
@@ -138,7 +138,7 @@ const verifyTwoFactorService = async (userId: string, code: string) => {
 
   logger.info(`User 2FA verified: ${user.email}`);
   return {
-    user: { id: user.id, name: user.name, email: user.email, avatarUrl: user.avatarUrl },
+    user: { id: user.id, name: user.name, email: user.email, isTwoFactorEnabled: user.isTwoFactorEnabled, avatarUrl: user.avatarUrl },
     accessToken,
     refreshToken,
   };
