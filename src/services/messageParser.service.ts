@@ -12,7 +12,7 @@ export interface ParsedTransaction {
 }
 
 const client = new OpenAI({
-  baseURL: "http://192.168.29.50:1234/v1",
+  baseURL: " https://feminize-posted-life.ngrok-free.dev",
   apiKey: "lm-studio",
 });
 
