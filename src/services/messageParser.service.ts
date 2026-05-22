@@ -12,7 +12,7 @@ export interface ParsedTransaction {
 }
 
 const client = new OpenAI({
-  baseURL: " https://feminize-posted-life.ngrok-free.dev",
+  baseURL: "https://feminize-posted-life.ngrok-free.dev/v1",
   apiKey: "lm-studio",
 });
 
@@ -45,8 +45,9 @@ Rules:
       messages: [{ role: "user", content: prompt }],
       temperature: 0.1,
     });
-
+    console.log(JSON.stringify(response, null, 2));
     let text = response.choices[0].message.content ?? "";
+    
 
     // Remove thinking tags if model includes them
     text = text.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
