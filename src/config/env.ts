@@ -56,7 +56,12 @@ const envSchema = z.object({
   // Resend
   RESEND_API_KEY: z
     .string()
-    .min(1, "Resend API key is required")
+    .min(1, "Resend API key is required"),
+
+  // LM Studio
+  LM_STUDIO_URL: z
+    .string()
+    .url("LM_STUDIO_URL must be a valid URL")
 }); 
 
 const parsed = envSchema.safeParse(process.env);
