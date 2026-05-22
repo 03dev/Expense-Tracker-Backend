@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { env } from "../config/env";
 import { logger } from "../utils/logger";
 
 export interface ParsedTransaction {
@@ -11,7 +12,7 @@ export interface ParsedTransaction {
 }
 
 const client = new OpenAI({
-  baseURL: "https://feminize-posted-life.ngrok-free.dev/v1",
+  baseURL: env.LM_STUDIO_URL,
   apiKey: "lm-studio",
 });
 
@@ -21,17 +22,18 @@ export const parseTransactionMessage = async (
 
   try {
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date()
+      .toISOString()
+      .split("T")[0];
 
     const prompt = `
-Extract transaction data from this SMS.
-
-Return ONLY valid JSON.
+Convert this bank SMS into JSON.
 
 SMS:
 "${message}"
 
-Format:
+Return ONLY valid JSON.
+
 {
   "amount": number,
   "type": "INCOME" | "EXPENSE",
@@ -40,10 +42,23 @@ Format:
   "suggestedCategory": string,
   "note": string
 }
+
+Use categories like:
+Food & Dining,
+Groceries,
+Transport,
+Shopping,
+Entertainment,
+Health & Medical,
+Utilities,
+Salary,
+Travel,
+Subscriptions,
+Uncategorized
 `;
 
     const response = await client.chat.completions.create({
-      model: "gemma-3-1b-it",
+      model: "google/gemma-3-1b",
       messages: [
         {
           role: "system",
@@ -56,7 +71,8 @@ Format:
         }
       ],
       temperature: 0,
-      max_tokens: 80,
+      max_tokens: 140,
+      top_p: 0.1,
     });
 
     console.log(
@@ -68,8 +84,17 @@ Format:
       throw new Error("No choices returned from model");
     }
 
+    const choice = response.choices[0];
+
+    if (choice.finish_reason === "length") {
+      throw new Error("Model output truncated");
+    }
+
     let text =
-      response.choices[0]?.message?.content ?? "";
+      choice.message?.content ?? "";
+
+    console.log("RAW MODEL TEXT:");
+    console.log(text);
 
     text = text
       .replace(/<think>[\s\S]*?<\/think>/g, "")
@@ -80,29 +105,55 @@ Format:
     const firstBrace = text.indexOf("{");
     const lastBrace = text.lastIndexOf("}");
 
-    if (firstBrace === -1 || lastBrace === -1) {
+    if (
+      firstBrace === -1 ||
+      lastBrace === -1
+    ) {
       throw new Error("No JSON object found");
     }
 
-    text = text.slice(firstBrace, lastBrace + 1);
+    text = text.slice(
+      firstBrace,
+      lastBrace + 1
+    );
 
-    console.log("CLEANED JSON:", text);
+    console.log("CLEANED JSON:");
+    console.log(text);
 
-    const parsed = JSON.parse(text);
+    let parsed: ParsedTransaction;
 
-    logger.info("Message parsed successfully", {
-      parsed,
-    });
+    try {
+      parsed = JSON.parse(text);
+    } catch (err) {
 
-    return parsed as ParsedTransaction;
+      console.error(
+        "INVALID JSON:",
+        text
+      );
+
+      throw new Error(
+        "Model returned invalid JSON"
+      );
+    }
+
+    logger.info(
+      "Message parsed successfully",
+      { parsed }
+    );
+
+    return parsed;
 
   } catch (error) {
 
-    logger.error("Failed to parse message", {
-      error,
-    });
+    logger.error(
+      "Failed to parse message",
+      { error }
+    );
 
-    console.error("LM STUDIO ERROR:", error);
+    console.error(
+      "LM STUDIO ERROR:",
+      error
+    );
 
     throw new Error(
       "Could not extract transaction details from message"
