@@ -1,5 +1,4 @@
 import OpenAI from "openai";
-import { env } from "../config/env";
 import { logger } from "../utils/logger";
 
 export interface ParsedTransaction {
@@ -19,46 +18,94 @@ const client = new OpenAI({
 export const parseTransactionMessage = async (
   message: string
 ): Promise<ParsedTransaction> => {
+
   try {
-    const prompt = `Extract transaction details from this message and return ONLY a JSON object. No explanation, no markdown, no thinking tags, just raw JSON.
 
-Message: "${message}"
+    const today = new Date().toISOString().split("T")[0];
 
-Return this exact structure:
+    const prompt = `
+Extract transaction data from this SMS.
+
+Return ONLY valid JSON.
+
+SMS:
+"${message}"
+
+Format:
 {
-  "amount": <number>,
-  "type": <"INCOME" or "EXPENSE">,
-  "merchant": <string or null>,
-  "date": <"YYYY-MM-DD" format, use today if not mentioned>,
-  "suggestedCategory": <one of: "Food & Dining", "Groceries", "Transport", "Shopping", "Entertainment", "Health & Medical", "Housing & Rent", "Utilities", "Education", "Travel", "Salary", "Freelance", "Investment", "Subscriptions", "Uncategorized">,
-  "note": <original message summarized briefly>
+  "amount": number,
+  "type": "INCOME" | "EXPENSE",
+  "merchant": string | null,
+  "date": "${today}",
+  "suggestedCategory": string,
+  "note": string
 }
-
-Rules:
-- amount must be a positive number
-- type is EXPENSE if money is debited/spent, INCOME if credited/received
-- date today is ${new Date().toISOString().split("T")[0]}
-- return ONLY the JSON object, nothing else`;
+`;
 
     const response = await client.chat.completions.create({
-      model: "qwen/qwen3.5-9b",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.1,
+      model: "gemma-3-1b-it",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You extract bank transaction data and return only compact JSON."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0,
+      max_tokens: 80,
     });
-    console.log(JSON.stringify(response, null, 2));
-    let text = response.choices[0].message.content ?? "";
-    
 
-    // Remove thinking tags if model includes them
-    text = text.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
-    text = text.replace(/```json|```/g, "").trim();
+    console.log(
+      "RAW RESPONSE:",
+      JSON.stringify(response, null, 2)
+    );
+
+    if (!response.choices?.length) {
+      throw new Error("No choices returned from model");
+    }
+
+    let text =
+      response.choices[0]?.message?.content ?? "";
+
+    text = text
+      .replace(/<think>[\s\S]*?<\/think>/g, "")
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    const firstBrace = text.indexOf("{");
+    const lastBrace = text.lastIndexOf("}");
+
+    if (firstBrace === -1 || lastBrace === -1) {
+      throw new Error("No JSON object found");
+    }
+
+    text = text.slice(firstBrace, lastBrace + 1);
+
+    console.log("CLEANED JSON:", text);
 
     const parsed = JSON.parse(text);
-    logger.info("Message parsed successfully", { parsed });
+
+    logger.info("Message parsed successfully", {
+      parsed,
+    });
+
     return parsed as ParsedTransaction;
+
   } catch (error) {
-    logger.error("Failed to parse message", { error });
+
+    logger.error("Failed to parse message", {
+      error,
+    });
+
     console.error("LM STUDIO ERROR:", error);
-    throw new Error("Could not extract transaction details from message");
+
+    throw new Error(
+      "Could not extract transaction details from message"
+    );
   }
 };
