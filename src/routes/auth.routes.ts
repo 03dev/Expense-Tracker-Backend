@@ -1,6 +1,12 @@
 ﻿import { Router } from "express";
 import { validate } from "../middlewares/validate.middleware";
-import { loginSchema, registerSchema, resendVerificationSchema, verifyEmailSchema, verifyTwoFactorSchema } from "../validators/auth.validator";
+import {
+  loginSchema,
+  registerSchema,
+  resendVerificationSchema,
+  verifyEmailSchema,
+  verifyTwoFactorSchema,
+} from "../validators/auth.validator";
 import { AuthController } from "../controllers/auth.controller";
 import {
   authRateLimit,
@@ -35,9 +41,26 @@ router.post(
   validate({ body: loginSchema }),
   asyncHandler(AuthController.loginController),
 );
-router.post('/resend-verification', authRateLimit, validate({ body: resendVerificationSchema }), asyncHandler(AuthController.resendVerificationCodeController));
-router.patch("/two-factor", authMiddleware, asyncHandler(AuthController.toggleTwoFactorController));
-router.post("/logout", tokenRateLimit, asyncHandler(AuthController.logoutController));
-router.post("/refresh", tokenRateLimit, asyncHandler(AuthController.refreshTokenController));
+router.post(
+  "/resend-verification",
+  authRateLimit,
+  validate({ body: resendVerificationSchema }),
+  asyncHandler(AuthController.resendVerificationCodeController),
+);
+router.patch(
+  "/two-factor",
+  authMiddleware,
+  asyncHandler(AuthController.toggleTwoFactorController),
+);
+router.post(
+  "/logout",
+  tokenRateLimit,
+  asyncHandler(AuthController.logoutController),
+);
+router.post(
+  "/refresh",
+  tokenRateLimit,
+  asyncHandler(AuthController.refreshTokenController),
+);
 
 export default router;

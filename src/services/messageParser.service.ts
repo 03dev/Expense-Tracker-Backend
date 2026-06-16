@@ -12,27 +12,19 @@ export interface ParsedTransaction {
 }
 
 const client = new OpenAI({
-  baseURL: env.LM_STUDIO_URL,
-  apiKey: "lm-studio",
+  baseURL: "https://api.groq.com/openai/v1",
+  apiKey: env.GROQ_API_KEY,
 });
 
 export const parseTransactionMessage = async (
   message: string
 ): Promise<ParsedTransaction> => {
-
   try {
+    const today = new Date().toISOString().split("T")[0];
+    const lowerMessage = message.toLowerCase();
 
-    const today = new Date()
-      .toISOString()
-      .split("T")[0];
-
-    const lowerMessage =
-      message.toLowerCase();
-
-    // Deterministic transaction type
     const transactionType =
-      lowerMessage.includes("credited") ||
-      lowerMessage.includes("received")
+      lowerMessage.includes("credited") || lowerMessage.includes("received")
         ? "INCOME"
         : "EXPENSE";
 
@@ -42,8 +34,7 @@ Convert this bank SMS into JSON.
 SMS:
 "${message}"
 
-Return ONLY valid JSON.
-
+Return ONLY valid JSON, no explanation, no markdown:
 {
   "amount": number,
   "type": "${transactionType}",
@@ -58,142 +49,63 @@ Rules:
 - do not use account numbers as merchant
 - keep note short
 
-Use categories like:
-Food & Dining,
-Groceries,
-Transport,
-Shopping,
-Entertainment,
-Health & Medical,
-Utilities,
-Salary,
-Travel,
-Subscriptions,
-Uncategorized
+Categories:
+Food & Dining, Groceries, Transport, Shopping, Entertainment, Health & Medical, Utilities, Salary, Travel, Subscriptions, Uncategorized
 `;
 
-    const response =
-      await client.chat.completions.create({
-        model: "google/gemma-3-1b",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You extract bank transaction data and return only compact JSON."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: 0,
-        max_tokens: 140,
-        top_p: 0.1,
-      });
-
-    console.log(
-      "RAW RESPONSE:",
-      JSON.stringify(response, null, 2)
-    );
+    const response = await client.chat.completions.create({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        {
+          role: "system",
+          content: "You extract bank transaction data and return only compact JSON. No markdown, no explanation.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0,
+      max_tokens: 200,
+    });
 
     if (!response.choices?.length) {
-      throw new Error(
-        "No choices returned from model"
-      );
+      throw new Error("No choices returned from model");
     }
 
-    const choice =
-      response.choices[0];
+    let text = response.choices[0].message?.content ?? "";
 
-    if (
-      choice.finish_reason === "length"
-    ) {
-      throw new Error(
-        "Model output truncated"
-      );
-    }
-
-    let text =
-      choice.message?.content ?? "";
-
-    console.log("RAW MODEL TEXT:");
-    console.log(text);
-
-    // Cleanup
+    // Cleanup just in case
     text = text
-      .replace(
-        /<think>[\s\S]*?<\/think>/g,
-        ""
-      )
       .replace(/```json/g, "")
       .replace(/```/g, "")
       .trim();
 
-    const firstBrace =
-      text.indexOf("{");
+    const firstBrace = text.indexOf("{");
+    const lastBrace = text.lastIndexOf("}");
 
-    const lastBrace =
-      text.lastIndexOf("}");
-
-    if (
-      firstBrace === -1 ||
-      lastBrace === -1
-    ) {
-      throw new Error(
-        "No JSON object found"
-      );
+    if (firstBrace === -1 || lastBrace === -1) {
+      throw new Error("No JSON object found");
     }
 
-    text = text.slice(
-      firstBrace,
-      lastBrace + 1
-    );
-
-    console.log("CLEANED JSON:");
-    console.log(text);
+    text = text.slice(firstBrace, lastBrace + 1);
 
     let parsed: ParsedTransaction;
-
     try {
-
       parsed = JSON.parse(text);
-
     } catch (err) {
-
-      console.error(
-        "INVALID JSON:",
-        text
-      );
-
-      throw new Error(
-        "Model returned invalid JSON"
-      );
+      console.error("INVALID JSON:", text);
+      throw new Error("Model returned invalid JSON");
     }
 
     // Force deterministic type
     parsed.type = transactionType;
 
-    logger.info(
-      "Message parsed successfully",
-      { parsed }
-    );
+    logger.info("Message parsed successfully", { parsed });
 
     return parsed;
-
   } catch (error) {
-
-    logger.error(
-      "Failed to parse message",
-      { error }
-    );
-
-    console.error(
-      "LM STUDIO ERROR:",
-      error
-    );
-
-    throw new Error(
-      "Could not extract transaction details from message"
-    );
+    logger.error("Failed to parse message", { error });
+    throw new Error("Could not extract transaction details from message");
   }
 };

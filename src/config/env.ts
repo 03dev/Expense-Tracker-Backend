@@ -61,7 +61,11 @@ const envSchema = z.object({
   // LM Studio
   LM_STUDIO_URL: z
     .string()
-    .url("LM_STUDIO_URL must be a valid URL")
+    .url("LM_STUDIO_URL must be a valid URL"),
+
+  GROQ_API_KEY: z
+    .string()
+    .min(1, "GROQ_API_KEY is required"),
 }); 
 
 const parsed = envSchema.safeParse(process.env);
