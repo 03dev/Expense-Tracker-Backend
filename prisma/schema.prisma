@@ -28,6 +28,16 @@ enum NotificationType {
 enum VerificationType {
   EMAIL_VERIFICATION
   TWO_FACTOR
+  PASSWORD_RESET
+}
+
+enum PaymentMethodType {
+  BANK
+  CASH
+  UPI
+  CREDIT_CARD
+  DEBIT_CARD
+  WALLET
 }
 
 model User {
@@ -44,6 +54,7 @@ model User {
   refreshTokens RefreshToken[]
   notifications Notification[]
   verificationCodes VerificationCode[]
+  paymentMethods    PaymentMethod[]
 
   isEmailVerified Boolean @default(false)
   isTwoFactorEnabled Boolean @default(false)
@@ -113,6 +124,8 @@ model Transaction {
   categoryId String
   user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   category   Category        @relation(fields: [categoryId], references: [id])
+  paymentMethodId String?
+  paymentMethod   PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
 
   @@unique([id, userId])
 
@@ -121,6 +134,24 @@ model Transaction {
   @@index([userId, categoryId])
   @@index([userId, deletedAt])
   @@index([date])
+}
+
+model PaymentMethod {
+  id         String    @id @default(uuid())
+  name       String
+  type       PaymentMethodType
+  lastFourDigits String?
+  isDefault  Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@unique([id, userId])
+  @@index([userId])
+  @@index([userId,deletedAt])
 }
 
 model Budget {

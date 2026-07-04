@@ -51,10 +51,15 @@ const deleteBudgetService = async (id: string, userId: string) => {
   await budgetRepository.deleteBudget(id, userId);
 };
 
+const getBudgetHistoryService = async (userId: string) => {
+  return budgetRepository.getBudgetHistory(userId);
+};
+
 export const BudgetService = {
   createBudgetService,
   getBudgetsService,
   getBudgetByIdService,
   updateBudgetService,
   deleteBudgetService,
+  getBudgetHistoryService
 };

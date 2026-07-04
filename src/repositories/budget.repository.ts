@@ -40,7 +40,10 @@ class BudgetRepository extends BaseRepository<typeof prisma.budget> {
   async getBudgets(userId: string, filter: GetBudgetsInput) {
     const dateFilter =
       filter.month !== undefined && filter.year !== undefined
-        ? { gte: new Date(filter.year, filter.month - 1, 1), lt: new Date(filter.year, filter.month, 1) }
+        ? {
+            gte: new Date(filter.year, filter.month - 1, 1),
+            lt: new Date(filter.year, filter.month, 1),
+          }
         : undefined;
 
     const [budgets, spentByCategory] = await Promise.all([
@@ -65,7 +68,7 @@ class BudgetRepository extends BaseRepository<typeof prisma.budget> {
     ]);
 
     const spentMap = new Map(
-      spentByCategory.map((s) => [s.categoryId, Number(s._sum.amount ?? 0)])
+      spentByCategory.map((s) => [s.categoryId, Number(s._sum.amount ?? 0)]),
     );
 
     const enriched = budgets.map((budget) => {
@@ -139,6 +142,20 @@ class BudgetRepository extends BaseRepository<typeof prisma.budget> {
       data: { amount, icon, month, year, categoryId, deletedAt: null },
       select: budgetSelect,
     });
+  }
+
+  async getBudgetHistory(userId: string) {
+    const budgets = await this.delegate.findMany({
+      where: { userId, deletedAt: null },
+      select: {
+        month: true,
+        year: true,
+      },
+      distinct: ["month", "year"],
+      orderBy: [{ year: "desc" }, { month: "desc" }],
+    });
+
+    return budgets;
   }
 }
 

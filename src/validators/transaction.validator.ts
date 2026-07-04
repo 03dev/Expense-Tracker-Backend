@@ -24,6 +24,7 @@ export const createTransactionSchema = z
     }, z.array(z.string()).default([])),
     date: z.string().datetime("Invalid date format"),
     categoryId: z.string().uuid("Invalid category ID"),
+    paymentMethodId: z.string().uuid("Invalid payment method ID").optional(),
   })
   .strict();
 
@@ -54,6 +55,7 @@ export const updateTransactionSchema = z
     tags: z.array(z.string()).optional(),
     date: z.string().datetime("Invalid date format").optional(),
     categoryId: z.string().uuid("Invalid category ID").optional(),
+    paymentMethodId: z.string().uuid("Invalid payment method ID").optional(),
   })
   .strict()
   .refine((data) => Object.keys(data).length > 0, {

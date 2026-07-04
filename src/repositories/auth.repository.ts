@@ -55,6 +55,7 @@ class AuthRepository {
       isEmailVerified: boolean;
       isTwoFactorEnabled: boolean;
       avatarUrl: string;
+      password: string;
     }>,
   ) {
     return prisma.user.update({

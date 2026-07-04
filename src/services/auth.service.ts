@@ -204,6 +204,63 @@ const resendVerificationCodeService = async (userId: string) => {
   return { message: "Verification code resent successfully" };
 };
 
+const forgotPasswordService = async (email: string) => {
+  const user = await authRepository.findUserByEmail(email);
+  if (!user) throw new BadRequestError("No account with this email");
+  if (!user.isEmailVerified) throw new BadRequestError("Please verify your email first");
+
+  const code = generateCode();
+  await verificationRepository.createVerificationCode(
+    user.id,
+    code,
+    VerificationType.PASSWORD_RESET
+  );
+
+  try {
+    await sendVerificationEmail(email, code);
+  } catch (err) {
+    logger.error(`Failed to send password resent email: ${err}`);
+  }
+
+  logger.info(`Password reset code send to : ${email}`);
+  return { message: "Password reset code send to your email"};
+}
+
+const verifyResetOtpService = async (email: string, code: string) => {
+  const user = await authRepository.findUserByEmail(email);
+  if (!user) throw new BadRequestError("No user witth this email");
+
+  const verificationCode = await verificationRepository.findVerificationCode(
+    user.id,
+    code,
+    VerificationType.PASSWORD_RESET
+  );
+
+  if (!verificationCode) throw new BadRequestError("Invalid or expired code");
+
+  return { message: "Code verified successfully"};
+}
+
+const resetPasswordService = async (email: string, code: string, newPassword: string) => {
+  const user = await authRepository.findUserByEmail(email);
+  if (!user) throw new BadRequestError("No account found with this email");
+
+  const verificationCode = await verificationRepository.findVerificationCode(
+    user.id,
+    code,
+    VerificationType.PASSWORD_RESET
+  );
+
+  if (!verificationCode) throw new BadRequestError("Invalid or expired code");
+
+  const hashedPassword = await TokenUtils.hashedFunction(newPassword);
+  await authRepository.updateUser(user.id, { password: hashedPassword});
+  await verificationRepository.deleteVerificationCode(verificationCode.id);
+
+  logger.info(`Password reset successfully for: ${email}`);
+  return {message: "Password reset successfully"};
+}
+
 export const AuthServices = {
   registerService,
   verifyEmailService,
@@ -213,4 +270,7 @@ export const AuthServices = {
   logoutService,
   refreshTokenService,
   resendVerificationCodeService,
+  forgotPasswordService,
+  verifyResetOtpService,
+  resetPasswordService
 };

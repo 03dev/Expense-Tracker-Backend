@@ -11,10 +11,13 @@ router.post("/", authMiddleware, validate({body: createBudgetSchema}), asyncHand
 
 router.get("/", authMiddleware, validate({query: getBudgetsSchema}), asyncHandler(BudgetController.getBudgets));
 
+router.get("/history", authMiddleware, asyncHandler(BudgetController.getBudgetHistory));
+
 router.get("/:id", authMiddleware, validate({params: budgetIdSchema}), asyncHandler(BudgetController.getBudgetById));
 
 router.patch("/:id", authMiddleware, validate({params: budgetIdSchema, body: updateBudgetSchema}), asyncHandler(BudgetController.updateBudget));
 
 router.delete("/:id", authMiddleware, validate({params: budgetIdSchema}), asyncHandler(BudgetController.deleteBudget));
+
 
 export default router;

@@ -15,7 +15,7 @@ import notificationRouter from "./routes/notification.routes";
 import analyticsRouter from "./routes/analytics.routes";
 import userRouter from "./routes/user.routes";
 import dashboardRouter from "./routes/dashboard.routes";
-
+import paymentMethodRouter from "./routes/paymentMethod.route";
 const app = express();
 
 // Middlewares
@@ -54,6 +54,7 @@ app.use("/notifications", notificationRouter);
 app.use("/analytics", analyticsRouter);
 app.use("/user", userRouter);
 app.use("/dashboard", dashboardRouter);
+app.use("/payment-methods", paymentMethodRouter);
 
 // Routes will come here later
 

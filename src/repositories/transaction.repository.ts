@@ -26,6 +26,14 @@ const transactionSelect = {
       name: true,
     },
   },
+  paymentMethodId: true,
+  paymentMethod: {
+    select: {
+      id: true,
+      name: true,
+      type: true,
+    },
+  },
 } as const;
 
 class TransactionRepository extends BaseRepository<typeof prisma.transaction> {

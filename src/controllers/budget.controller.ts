@@ -58,10 +58,20 @@ const deleteBudget = async (req: AuthenticatedRequest, res: Response) => {
   });
 }
 
+const getBudgetHistory = async (req: AuthenticatedRequest, res: Response) => {
+  const history = await BudgetService.getBudgetHistoryService(req.user.id);
+  return res.status(200).json({
+    success: true,
+    message: "Budget history fetched successfully",
+    data: history,
+  });
+};
+
 export const BudgetController = {
     createBudget,
     getBudgets,
     getBudgetById,
     updateBudget,
-    deleteBudget
+    deleteBudget,
+    getBudgetHistory
 }

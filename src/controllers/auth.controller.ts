@@ -126,6 +126,25 @@ const resendVerificationCodeController = async (req: AppRequest, res: Response) 
   return res.status(200).json({ success: true, message });
 };
 
+const forgotPasswordController = async (req: AppRequest, res: Response) => {
+  const { email } = req.body;
+  const { message } = await AuthServices.forgotPasswordService(email);
+  return res.status(200).json({ success: true, message });
+}
+
+const verifyResetOtpController = async (req: AppRequest, res: Response) => {
+  const { email, code } = req.body;
+  const { message } = await AuthServices.verifyResetOtpService(email, code);
+  return res.status(200).json({ success: true, message });
+}
+
+const resetPasswordController = async (req: AppRequest, res: Response) => {
+  const { email, code, newPassword} = req.body;
+  const { message } = await AuthServices.resetPasswordService(email, code, newPassword);
+  return res.status(200).json({ success: true, message });
+}
+
+
 export const AuthController = {
   signUpController,
   verifyEmailController,
@@ -135,4 +154,7 @@ export const AuthController = {
   refreshTokenController,
   logoutController,
   resendVerificationCodeController,
+  forgotPasswordController,
+  verifyResetOtpController,
+  resetPasswordController
 };

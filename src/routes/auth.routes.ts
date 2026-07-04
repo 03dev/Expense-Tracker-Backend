@@ -1,10 +1,13 @@
 ﻿import { Router } from "express";
 import { validate } from "../middlewares/validate.middleware";
 import {
+  forgotPasswordSchema,
   loginSchema,
   registerSchema,
   resendVerificationSchema,
+  resetPasswordSchema,
   verifyEmailSchema,
+  verifyResetOtpSchema,
   verifyTwoFactorSchema,
 } from "../validators/auth.validator";
 import { AuthController } from "../controllers/auth.controller";
@@ -61,6 +64,24 @@ router.post(
   "/refresh",
   tokenRateLimit,
   asyncHandler(AuthController.refreshTokenController),
+);
+router.post(
+  "/forgot-password",
+  authRateLimit,
+  validate({ body: forgotPasswordSchema }),
+  asyncHandler(AuthController.forgotPasswordController),
+);
+router.post(
+  "/forgot-password/verify",
+  authRateLimit,
+  validate({ body: verifyResetOtpSchema }),
+  asyncHandler(AuthController.verifyResetOtpController),
+);
+router.post(
+  "/forgot-password/reset",
+  authRateLimit,
+  validate({ body: resetPasswordSchema }),
+  asyncHandler(AuthController.resetPasswordController),
 );
 
 export default router;
