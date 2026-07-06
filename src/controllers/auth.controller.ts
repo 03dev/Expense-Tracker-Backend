@@ -97,7 +97,7 @@ const logoutController = async (req: AppRequest, res: Response) => {
 };
 
 const refreshTokenController = async (req: AppRequest, res: Response) => {
-  const token = req.cookies.refreshToken;
+  const token = req.cookies.refreshToken ?? req.body.refreshToken;
   if (!token) throw new UnauthorizedError("No refresh token provided");
   const { accessToken, refreshToken } = await AuthServices.refreshTokenService(token);
   res.cookie("refreshToken", refreshToken, {
